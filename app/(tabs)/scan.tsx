@@ -3,14 +3,14 @@ import { View, Button, Image, ActivityIndicator, Text, SafeAreaView, Touchable, 
 import { CameraView, useCameraPermissions, CameraType } from 'expo-camera';
 
 interface ResponseType {
-    score: number,
-    ID: number,
-    score_percentage: number,
-    total_questions: number,
-    choices: object,
-    annotated_image: string,
-    annotated_image_id: string,
-    annotated_image_marked: string
+  score: number,
+  ID: number,
+  score_percentage: number,
+  total_questions: number,
+  choices: object,
+  annotated_image: string,
+  annotated_image_id: string,
+  annotated_image_marked: string
 }
 
 export default function Scan() {
@@ -20,6 +20,36 @@ export default function Scan() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ResponseType | null>(null);
   const cameraRef = useRef<CameraView>(null);
+
+
+  const handleChoices = (choices: any[]) => {
+    let formatedChoices: any[] = []
+    choices.map((choice, quesion_num) => {
+      switch (choice) {
+        case 0:
+          formatedChoices.push(`${quesion_num + 1}:A`)
+          break;
+        case 1:
+          formatedChoices.push(`${quesion_num + 1}:B`)
+          break;
+        case 2:
+          formatedChoices.push(`${quesion_num + 1}:C`)
+          break;
+        case 3:
+          formatedChoices.push(`${quesion_num + 1}:D`)
+          break;
+        case 4:
+          formatedChoices.push(`${quesion_num + 1}:E`)
+          break;
+
+        default:
+          formatedChoices.push(`${quesion_num + 1}:None`)
+          break;
+      }
+    })
+    // setFormatedChoices(formatedChoices)
+    return formatedChoices
+  }
 
 
   const toggleCameraFacing = () => {
@@ -75,7 +105,7 @@ export default function Scan() {
     <View style={{ flex: 1 }}>
       {image ? (
         <>
-          <Image source={{ uri: image }} style={{ flex: 1 }} />
+          <Image source={{ uri: image }} style={{ flex: 1, objectFit: "contain" }} />
           <Image
             source={{ uri: result?.annotated_image }}
             style={{ width: 200, height: 270, objectFit: 'contain' }}
@@ -85,6 +115,13 @@ export default function Scan() {
           ) : result ? (
             <Text style={{ padding: 10 }}>Score: {result.score}</Text>
           ) : null}
+          {/* info results */}
+          {result && (<View className="">
+            <Text className='font-medium text-xl text-blue-500'>Info on this paper:</Text>
+            <Text>Student Score: {result?.score_percentage}% ( {result?.score} out of {result?.total_questions} )</Text>
+            <Text>Student ID: {result.ID}</Text>
+            <Text>Student Choices: {handleChoices(Object.values(result.choices))}</Text>
+          </View>)}
           <Button title="Retake" onPress={() => setImage(null)} />
         </>
       ) : (
@@ -95,10 +132,10 @@ export default function Scan() {
             </View>
             <View className='gap-2 flex items-center justify-center flex-row w-full h-full'>
               <TouchableOpacity onPress={takePicture} className='bg-[rgba(0,0,0,0.38)] text-white flex items-center justify-center'>
-                <Text style={{ padding: 10, color: "white" }}>Capture Bubble Sheet</Text>  
+                <Text style={{ padding: 10, color: "white" }}>Capture Bubble Sheet</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={toggleCameraFacing} className='bg-[rgba(0,0,0,0.38)] text-white flex items-center justify-center'>
-                <Text style={{ padding: 10, color: "white" }}>Toggle Camera</Text>  
+                <Text style={{ padding: 10, color: "white" }}>Toggle Camera</Text>
               </TouchableOpacity>
             </View>
           </CameraView>
