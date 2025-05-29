@@ -57,6 +57,14 @@ function UploadImage() {
         if (image) {
             formData.append('file', image);
         }
+        // Append the answer key as a JSON string
+        const answerKey = {
+            0: 0, 1: 1, 2: 4, 3: 0, 4: 2,
+            5: 1, 6: 4, 7: 3, 8: 2, 9: 2,
+            10: 2, 11: 1, 12: 2, 13: 1, 14: 0,
+            15: 1, 16: 1, 17: 3, 18: 3, 19: 4,
+        };
+        formData.append('answer_key', JSON.stringify(answerKey));
 
         try {
             const response = await axios.post('http://127.0.0.1:5000/scan', formData, {
