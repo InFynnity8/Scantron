@@ -201,7 +201,7 @@ export default function Scan() {
                     <View className='border border-blue-600' style={{ width: 150, height: 220, }}>
                       <Text>Original:</Text>
                       <Image
-                        source={{ uri: image }}
+                        source={{ uri: image ?? undefined }}
                         style={{ width: 150, height: 200, objectFit: "contain" }}
                       />
                     </View>
