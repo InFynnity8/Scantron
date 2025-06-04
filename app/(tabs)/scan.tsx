@@ -146,7 +146,7 @@ export default function Scan() {
       {image || !captureMode
         ? (
           <>
-            <View className='pt-10 pb-2' style={{ height: 220 }}
+            <View className='pt-10 pb-2' style={{ height: 127 }}
             >
               <Text>Enter Answers (0-4) i.e A=0, B=1, C=2, D=3, E=4:</Text>
               <View className='flex flex-row items-center'>
@@ -163,7 +163,7 @@ export default function Scan() {
                     padding: 2,
                     width: 50
                   }} />
-                <Button title="Clear all" onPress={() => {setTotalQuestions(0); setAnswers({})}} />
+                <Button title="Clear all" onPress={() => { setTotalQuestions(0); setAnswers({}) }} />
               </View>
               <ScrollView
                 contentContainerStyle={styles.grid}
@@ -248,8 +248,10 @@ export default function Scan() {
                 </View>)}
               </ScrollView>
 
-              <Button title="Capture" onPress={() => {setImage(null); setResult(null); setCaptureMode(true)}} />
-              <Button title="Upload" onPress={() => uploadImage(image)} />
+              <View className='flex justify-around flex-row items-center'>
+                <Button title="Capture" onPress={() => { setImage(null); setResult(null); setCaptureMode(true) }} />
+                <Button title="Upload" onPress={() => uploadImage(image)} />
+              </View>
             </View>
           </>
         ) : (
