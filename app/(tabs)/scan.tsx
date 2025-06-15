@@ -2,6 +2,9 @@ import React, { useRef, useState } from 'react';
 import { View, Button, Image, ActivityIndicator, Text, SafeAreaView, StyleSheet, TouchableOpacity, ScrollView, TextInput } from 'react-native';
 import { CameraView, useCameraPermissions, CameraType } from 'expo-camera';
 import { useToast } from 'react-native-toast-notifications';
+import { Zoomable } from '@likashefqet/react-native-image-zoom';
+import { Ionicons } from '@expo/vector-icons';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
 interface ResponseType {
   score: number,
@@ -200,19 +203,24 @@ export default function Scan() {
                   <View className='flex flex-row gap-2 min-w-[150px]'>
                     <View className='border border-blue-600' style={{ width: 150, height: 220, }}>
                       <Text>Original:</Text>
-                      <Image
-                        source={{ uri: image ?? undefined }}
-                        style={{ width: 150, height: 200, objectFit: "contain" }}
-                      />
+                      <Zoomable isDoubleTapEnabled>
+                        <Image
+                          source={{ uri: image ?? undefined }}
+                          style={{ width: 150, height: 200, objectFit: "contain" }}
+                        />
+                      </Zoomable>
                     </View>
                     <View className='border border-green-600' style={{ width: 150, height: 220, }}>
                       <Text>Final:</Text>
                       {loading ? (
                         <ActivityIndicator size="small" className='h-full' />
-                      ) : <Image
-                        source={{ uri: result?.annotated_image }}
-                        style={{ width: 150, height: 200, objectFit: 'contain' }}
-                      />}
+                      ) : <Zoomable isDoubleTapEnabled>
+                        <Image
+                          source={{ uri: result?.annotated_image }}
+                          style={{ width: 150, height: 200, objectFit: 'contain' }}
+                        />
+                      </Zoomable>
+                      }
                     </View>
                   </View>
                   {/* marked and ID annotated images */}
@@ -221,10 +229,10 @@ export default function Scan() {
                       <Text>Marked sheet:</Text>
                       {loading ? (
                         <ActivityIndicator size="small" className='h-full' />
-                      ) : <Image
+                      ) : <Zoomable isDoubleTapEnabled><Image
                         source={{ uri: result?.annotated_image_marked }}
                         style={{ width: 150, height: 200, objectFit: 'contain' }}
-                      />}
+                      /></Zoomable>}
                     </View>
                     <View className='border border-violet-950' style={{ width: 150, height: 220, }}>
                       <Text>ID notation:</Text>
@@ -255,20 +263,19 @@ export default function Scan() {
             </View>
           </>
         ) : (
-          <SafeAreaView className=' h-full flex items-center justify-center w-full' >
-            <CameraView style={{ width: "100%", height: "100%" }} ref={cameraRef} facing={facing}>
-              <View className='bg-[rgba(0,0,0,0.38)] text-white flex items-center justify-center'>
-                <Text style={{ padding: 10, color: "white" }}>Camera is {facing}</Text>
-              </View>
-              <View className='gap-2 flex items-center justify-center flex-row w-full h-full'>
-                <TouchableOpacity onPress={takePicture} className='bg-[rgba(0,0,0,0.38)] text-white flex items-center justify-center'>
-                  <Text style={{ padding: 10, color: "white" }}>Capture Bubble Sheet</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={toggleCameraFacing} className='bg-[rgba(0,0,0,0.38)] text-white flex items-center justify-center'>
-                  <Text style={{ padding: 10, color: "white" }}>Toggle Camera</Text>
-                </TouchableOpacity>
-              </View>
+          <SafeAreaView className=' h-full flex items-center justify-end w-full relative' >
+            <CameraView style={{ width: "100%", height: "100%", position: "absolute" }} ref={cameraRef} facing={facing}>
             </CameraView>
+            <View className='gap-2 flex items-center justify-center w-full flex-row bg-[rgba(0,0,0,0.32)] py-4'>
+              <View className='p-[3px] rounded-full bg-[rgba(255,255,255,0.44)]'>
+                <TouchableOpacity onPress={takePicture} className='bg-[rgb(31,36,85)] rounded-full w-20 h-20 flex items-center justify-center'>
+                  <MaterialIcons name="document-scanner" size={30} color="white" />
+                </TouchableOpacity>
+              </View>
+              {/* <TouchableOpacity onPress={toggleCameraFacing} className='bg-[rgba(0,0,0,0.38)] text-white flex items-center justify-center'>
+                <Text style={{ padding: 10, color: "white" }}>Toggle Camera</Text>
+              </TouchableOpacity> */}
+            </View>
 
           </SafeAreaView>
         )}
