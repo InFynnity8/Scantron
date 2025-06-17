@@ -8,8 +8,7 @@ const Login = () => {
 
 
   return (
-    <SafeAreaView>
-      <Text>login to youraccount</Text>
+    <SafeAreaView className='w-full h-full bg-white'>
       <LoginForm/>
     </SafeAreaView>
   )

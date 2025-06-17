@@ -6,6 +6,7 @@ content: ["./app/**/*.{js,jsx,ts,tsx}"],
       colors: {
         primary: '#030014',
         secondary: '#151312',
+        tertiary: "rgb(31,36,85)",
         light: {
           100: '#D6C6FF',
           200: '#A8B5DB',

@@ -3,13 +3,11 @@ import { View, TextInput, Text, StyleSheet, Alert, TouchableOpacity } from 'reac
 import { Link, router } from 'expo-router'
 import * as SecureStore from 'expo-secure-store';
 import { AntDesign } from '@expo/vector-icons';
-import { Checkbox } from 'react-native-paper';
 
 
-export default function LoginForm() {
+export default function RegisterForm() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [checked, setChecked] = useState(false);
 
 
     const handleLogin = async () => {
@@ -27,11 +25,23 @@ export default function LoginForm() {
     return (
         <View style={styles.container} >
             <View style={{ marginBottom: 40, display: "flex", alignItems: "center" }}>
-                <Text style={styles.title}>Welcome Back</Text>
+                <Text style={styles.title}>Create an account</Text>
                 <View className='flex flex-row'>
-                    <Text style={{ color: "rgb(202,202,203)", fontSize: 16, fontWeight: "500" }}>Don&apos;t have an account? </Text>
-                    <Link href="/register">Register</Link>
+                    <Text style={{ color: "rgb(202,202,203)", fontSize: 16, fontWeight: "500" }}>Already have an account? </Text>
+                    <Link href="/login">Login</Link>
                 </View>
+            </View>
+            <View style={{ marginBottom: 10 }}>
+                <Text style={{ fontWeight: "500", marginBottom: 10, fontSize: 18 }} > Full Name</Text>
+                <TextInput
+                    placeholder="John Doe"
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    style={styles.input}
+                    textContentType='name'
+                />
             </View>
             <View style={{ marginBottom: 10 }}>
                 <Text style={{ fontWeight: "500", marginBottom: 10, fontSize: 18 }} >Email Address</Text>
@@ -57,17 +67,12 @@ export default function LoginForm() {
             </View>
 
             <View className='w-full flex items-center flex-row justify-between' style={{ marginBottom: 10 }}>
-                <Checkbox.Item
-                    label="Remember me"
-                    status={checked ? 'checked' : 'unchecked'}
-                    onPress={() => setChecked(!checked)}
-                />
                 <Text style={{ color: "rgb(202,202,203)", fontSize: 16, fontWeight: "500" }}>Forgot Password</Text>
             </View>
 
             <TouchableOpacity onPress={handleLogin} style={{ backgroundColor: "rgb(31,36,85)", borderRadius: 200, padding: 13, display: "flex", alignItems: 'center' }}>
                 <Text className='text-white text-[18px] font-bold'>
-                    Login
+                    Register
                 </Text>
             </TouchableOpacity>
             <View className='flex items-center w-full' style={{ position: "relative", marginVertical: 30 }}>

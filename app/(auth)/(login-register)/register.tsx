@@ -1,12 +1,11 @@
-import { Text, SafeAreaView } from 'react-native'
+import { SafeAreaView } from 'react-native'
 import React from 'react'
-import { Link } from 'expo-router'
+import RegisterForm from '@/components/RegisterForm'
 
 const Register = () => {
   return (
-    <SafeAreaView>
-      <Text>Register</Text>
-      <Link href="/login"> Login</Link>
+    <SafeAreaView className='w-full h-full bg-white'>
+      <RegisterForm/>
     </SafeAreaView>
   )
 }
