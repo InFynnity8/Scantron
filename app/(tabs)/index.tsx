@@ -18,7 +18,7 @@ const handleLogout = async () => {
 };
 
   return (
-    <SafeAreaView className="flex-1 justify-center items-center bg-white">
+    <SafeAreaView className="flex-1 justify-center items-center bg-white" >
       <View className="w-32 h-32 bg-[rgb(31,36,85)] rounded-full justify-center items-center">
         <Text className="text-white text-2xl font-bold">ScanTron</Text>
       </View>

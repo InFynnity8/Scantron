@@ -27,9 +27,9 @@ const _layout = () => {
                         } else if (route.name === "scan") {
                             IconName = "scan"
                             label = "Scan"
-                        } else if (route.name === "web") {
-                            IconName = "globe-outline"
-                            label = "Web"
+                        } else if (route.name === "saved_files") {
+                            IconName = "file-tray-full-sharp"
+                            label = "Results"
                         }
 
                         return (
@@ -40,12 +40,12 @@ const _layout = () => {
                                 flexDirection: "row",
                                 alignItems: "center",
                                 borderRadius: 999,
-                                // justifyContent: "center",
+                                justifyContent: "center",
                                 paddingHorizontal: 10,
                                 paddingVertical: 6,
                                 marginTop: 10,
                                 gap: 6,
-                                width: 85,
+                                width: 100,
                                 height: 40
                             }}
                             >
@@ -76,10 +76,10 @@ const _layout = () => {
                 }}
             />
             <Tabs.Screen
-                name="web"
+                name="saved_files"
                 options={{
                     headerShown: false,
-                    title: 'Web'
+                    title: 'Saved files'
                 }}
             />
         </Tabs>
