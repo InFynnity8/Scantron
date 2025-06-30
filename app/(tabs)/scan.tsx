@@ -41,11 +41,9 @@ export default function Scan() {
   const [result, setResult] = useState<ResponseType | null>(null);
   const cameraRef = useRef<CameraView>(null);
   const toast = useToast();
-  const inputRefs = useRef<(TextInput | null)[]>([]);
-  // const [answers, setAnswers] = useState<{ [key: number]: number | undefined }>({});
   const [selectedAnswers, setSelectedAnswers] = useState<{ [key: number]: number | undefined }>({});
   const [totalQuestions, setTotalQuestions] = useState<number>(0)
-  const [captureMode, setCaptureMode] = useState<boolean>(false)
+  // const [captureMode, setCaptureMode] = useState<boolean>(false)
   const [jsonResponses, setJsonResponses] = useState<any[]>([]);
   const [formattedChoices, setFormattedChoices] = useState<any[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
@@ -149,11 +147,12 @@ export default function Scan() {
     if (cameraRef.current) {
       const photo = await cameraRef.current.takePictureAsync();
       setImage(photo.uri);
-      setCaptureMode(false)
+      // setCaptureMode(false)
     }
   };
 
   const uploadImage = async (uri: any) => {
+    setResult(null)
     const isAnswerKeyComplete = Object.keys(selectedAnswers).length === totalQuestions;
     if (!isAnswerKeyComplete) {
       toast.show("Please enter answers for all questions before uploading.", { type: "danger" });
@@ -273,7 +272,8 @@ export default function Scan() {
               </Modal>
               <Pressable
                 style={[styles.button, styles.buttonOpen]}
-                onPress={() => setModalVisible(true)}>
+                onPress={() => setModalVisible(true)} disabled=
+                {loading}>
                 <Text style={styles.textStyle}>Edit Marking Scheme</Text>
               </Pressable>
             </SafeAreaView>
@@ -342,7 +342,7 @@ export default function Scan() {
               </ScrollView>
 
               <View className='flex justify-around flex-row items-center'>
-                <Button title="Capture" onPress={() => { setImage(null); setResult(null); setCaptureMode(true) }} />
+                <Button title="Capture" onPress={() => { setImage(null); setResult(null); }} />
                 <Button title="Export" onPress={exportToExcel} disabled={result === null} />
                 <Button title="Upload" onPress={() => uploadImage(image)} />
               </View>
