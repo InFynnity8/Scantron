@@ -10,6 +10,7 @@ import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import RadioButtonCustom from '@/components/RadioButtonCustom';
+import { Background } from '@react-navigation/elements';
 
 
 interface ResponseType {
@@ -271,7 +272,7 @@ export default function Scan() {
                 </View>
               </Modal>
               <Pressable
-                style={[styles.button, styles.buttonOpen]}
+                style={[styles.button, styles.buttonOpen, { backgroundColor: loading ? 'gray' : 'rgb(31,36,85)' }]}
                 onPress={() => setModalVisible(true)} disabled=
                 {loading}>
                 <Text style={styles.textStyle}>Edit Marking Scheme</Text>
@@ -415,7 +416,6 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   buttonOpen: {
-    backgroundColor: 'rgb(31,36,85)',
     marginTop: 30
   },
   buttonClose: {
