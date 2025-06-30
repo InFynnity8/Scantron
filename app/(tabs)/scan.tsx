@@ -9,6 +9,7 @@ import XLSX from 'xlsx';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import RadioButtonCustom from '@/components/RadioButtonCustom';
 
 
 interface ResponseType {
@@ -41,7 +42,8 @@ export default function Scan() {
   const cameraRef = useRef<CameraView>(null);
   const toast = useToast();
   const inputRefs = useRef<(TextInput | null)[]>([]);
-  const [answers, setAnswers] = useState<{ [key: number]: number | undefined }>({});
+  // const [answers, setAnswers] = useState<{ [key: number]: number | undefined }>({});
+  const [selectedAnswers, setSelectedAnswers] = useState<{ [key: number]: number | undefined }>({});
   const [totalQuestions, setTotalQuestions] = useState<number>(0)
   const [captureMode, setCaptureMode] = useState<boolean>(false)
   const [jsonResponses, setJsonResponses] = useState<any[]>([]);
@@ -119,19 +121,7 @@ export default function Scan() {
     }
   }
 
-  const handleChange = (index: number, value: string) => {
-    console.log(answers, index)
-    const intValue = parseInt(value);
-    if (value === '' || (intValue >= 0 && intValue <= 4)) {
-      setAnswers((prev) => ({
-        ...prev,
-        [index]: value === '' ? undefined : intValue,
-      }))
-    };
-    if (value.length === 1 && index < totalQuestions - 1) {
-      inputRefs.current[index + 1]?.focus();
-    }
-  };
+
 
 
 
@@ -164,21 +154,21 @@ export default function Scan() {
   };
 
   const uploadImage = async (uri: any) => {
-    const isAnswerKeyComplete = Object.keys(answers).length === totalQuestions;
+    const isAnswerKeyComplete = Object.keys(selectedAnswers).length === totalQuestions;
     if (!isAnswerKeyComplete) {
       toast.show("Please enter answers for all questions before uploading.", { type: "danger" });
       return;
     }
 
     setLoading(true);
-    console.log(answers)
+    console.log(selectedAnswers)
     const formData = new FormData();
     formData.append('file', {
       uri,
       type: 'image/png',
       name: 'image.png',
     } as any);
-    formData.append('answer_key', JSON.stringify(answers));
+    formData.append('answer_key', JSON.stringify(selectedAnswers));
     console.log('Uploading image:', uri);
     console.log('Form data:', formData.getAll('file'));
     try {
@@ -218,10 +208,9 @@ export default function Scan() {
 
   return (
     <View className='flex-1'>
-
       {image
         ? (
-          <SafeAreaView style={{height: "100%"}}>
+          <SafeAreaView style={{ height: "100%" }}>
             <SafeAreaView style={styles.centeredView}>
               <Modal
                 animationType="slide"
@@ -231,57 +220,53 @@ export default function Scan() {
                   Alert.alert('Modal has been closed.');
                   setModalVisible(!modalVisible);
                 }}>
-                <View style={{ height: "100%"}}>
+                <View style={{ height: "100%" }}>
                   <View style={styles.modalView}>
                     <View className='pt-10 pb-2' style={{ height: "90%" }}>
-                      <Text>Enter Answers (0-4) i.e A=0, B=1, C=2, D=3, E=4:</Text>
-                      <View className='flex flex-row items-center'>
-                        <Text>Total number of questions:</Text>
-                        <TextInput
-                          keyboardType='numeric'
-                          maxLength={3}
-                          value={totalQuestions.toString()}
-                          onChangeText={(text) => handleTotalChange(text)}
-                          style={{
-                            borderWidth: 1,
-                            borderColor: 'gray',
-                            margin: 5,
-                            padding: 2,
-                            width: 50
-                          }} />
-                        <Button title="Clear all" onPress={() => { setTotalQuestions(0); setAnswers({}) }} />
+                      <View className='mb-5'>
+                        <Text className='font-medium text-[30px] text-center'>Marking Scheme</Text>
+                      </View>
+                      <View className='w-full flex flex-row items-start justify-between'>
+                        <View>
+                          <Text>Total number of questions:</Text>
+                          <TextInput
+                            keyboardType='numeric'
+                            maxLength={3}
+                            value={totalQuestions.toString()}
+                            onChangeText={(text) => handleTotalChange(text)}
+                            style={{
+                              borderWidth: 1,
+                              borderColor: 'gray',
+                              margin: 5,
+                              padding: 2,
+                              width: 50
+                            }} />
+                        </View>
+                        <Button title="Reset" onPress={() => { setTotalQuestions(0); setSelectedAnswers({}) }} />
                       </View>
                       <ScrollView
                         contentContainerStyle={styles.grid}
                       >
                         {[...Array(totalQuestions || 0)].map((_, index) => (
-                          <>
-                            {/* <Text> {index + 1}. </Text> */}
-                            <TextInput
-                              key={index}
-                              ref={(ref) => { inputRefs.current[index] = ref }}
-                              keyboardType="numeric"
-                              placeholder={`Answer ${index + 1}`}
-                              maxLength={1}
-                              placeholderTextColor="gray"
-                              value={answers[index] !== undefined ? answers[index]?.toString() : ''}
-                              onChangeText={(text) => handleChange(index, text)}
-                              style={{
-                                borderWidth: 1,
-                                borderColor: 'gray',
-                                margin: 5,
-                                padding: 2,
-                                width: 80
-                              }}
-                            />
-                          </>
+                          <View key={index} className={`${index % 2 ? "bg-slate-300" : "bg-white"}  flex-row flex w-full p-3 justify-center`}>
+                            <Text>Question {index + 1}: </Text>
+                            <RadioButtonCustom key={index}
+                              questionIndex={index}
+                              selectedOption={selectedAnswers[index] || ''}
+                              onSelect={(qIndex: number, value: number) => {
+                                setSelectedAnswers(prev => ({
+                                  ...prev,
+                                  [qIndex]: value
+                                }));
+                              }} />
+                          </View>
                         ))}
                       </ScrollView>
                     </View>
                     <Pressable
                       style={[styles.button, styles.buttonClose]}
                       onPress={() => setModalVisible(!modalVisible)}>
-                      <Text style={styles.textStyle}>Hide Modal</Text>
+                      <Text style={styles.textStyle}>Finish</Text>
                     </Pressable>
                   </View>
                 </View>
@@ -289,7 +274,7 @@ export default function Scan() {
               <Pressable
                 style={[styles.button, styles.buttonOpen]}
                 onPress={() => setModalVisible(true)}>
-                <Text style={styles.textStyle}>Add Marking Scheme</Text>
+                <Text style={styles.textStyle}>Edit Marking Scheme</Text>
               </Pressable>
             </SafeAreaView>
 
@@ -358,7 +343,7 @@ export default function Scan() {
 
               <View className='flex justify-around flex-row items-center'>
                 <Button title="Capture" onPress={() => { setImage(null); setResult(null); setCaptureMode(true) }} />
-                <Button title="Export to Excel" onPress={exportToExcel} />
+                <Button title="Export" onPress={exportToExcel} disabled={result === null} />
                 <Button title="Upload" onPress={() => uploadImage(image)} />
               </View>
 
@@ -397,6 +382,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
+    width: "100%",
+    borderWidth: 1,
+    borderColor: "#2196F3"
   },
   centeredView: {
     justifyContent: 'center',
@@ -405,9 +393,11 @@ const styles = StyleSheet.create({
   },
   modalView: {
     marginVertical: 20,
+    display: "flex",
+    justifyContent: "center",
     backgroundColor: 'white',
     borderRadius: 20,
-    padding: 35,
+    padding: 15,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: {
@@ -417,7 +407,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 5,
-    height: "100%"
+    height: "100%",
   },
   button: {
     borderRadius: 20,
@@ -426,6 +416,7 @@ const styles = StyleSheet.create({
   },
   buttonOpen: {
     backgroundColor: 'rgb(31,36,85)',
+    marginTop: 30
   },
   buttonClose: {
     backgroundColor: '#2196F3',
