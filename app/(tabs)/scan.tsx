@@ -10,7 +10,6 @@ import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import RadioButtonCustom from '@/components/RadioButtonCustom';
-import { Background } from '@react-navigation/elements';
 
 
 interface ResponseType {
