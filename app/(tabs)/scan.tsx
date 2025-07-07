@@ -10,6 +10,9 @@ import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import RadioButtonCustom from '@/components/RadioButtonCustom';
+import { WebView } from 'react-native-webview';
+import LiveCameraView from '../../components/SmartCamera';
+import { Asset } from 'expo-asset';
 
 
 interface ResponseType {
@@ -40,6 +43,8 @@ export default function Scan() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ResponseType | null>(null);
   const cameraRef = useRef<CameraView>(null);
+  const webViewRef = useRef(null);
+  const [isWebViewReady, setIsWebViewReady] = useState(false);
   const toast = useToast();
   const [selectedAnswers, setSelectedAnswers] = useState<{ [key: number]: number | undefined }>({});
   const [totalQuestions, setTotalQuestions] = useState<number>(0)
@@ -47,10 +52,25 @@ export default function Scan() {
   const [jsonResponses, setJsonResponses] = useState<any[]>([]);
   const [formattedChoices, setFormattedChoices] = useState<any[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
+  const [htmlUri, setHtmlUri] = useState('');
 
 
   const resultsDir = FileSystem.documentDirectory + "Scanned_results/";
 
+  // Local HTML loading
+
+  useEffect(() => {
+    const loadLocalHtml = async () => {
+      const asset = Asset.fromModule(require('../../assets/OpenCV/index.html'));
+      await asset.downloadAsync(); // make sure it's available
+
+      const htmlContent = await FileSystem.readAsStringAsync(asset.localUri!);
+      // setHtmlUri(`data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`);
+      setHtmlUri(htmlContent);
+    };
+
+    loadLocalHtml();
+  }, []);
 
   const ensureResultsFolderExists = async () => {
     const dirInfo = await FileSystem.getInfoAsync(resultsDir);
@@ -152,6 +172,42 @@ export default function Scan() {
   };
 
   const uploadImage = async (uri: any) => {
+    // if (!isWebViewReady || !webViewRef.current) {
+    //   toast.show("Please wait for scanner to initialize...", { type: "warning" });
+    //   setLoading(false);
+    //   return;
+    // }
+
+    // setResult(null);
+
+    // const isAnswerKeyComplete = Object.keys(selectedAnswers).length === totalQuestions;
+    // if (!isAnswerKeyComplete) {
+    //   toast.show("Please enter answers for all questions before uploading.", { type: "danger" });
+    //   return;
+    // }
+
+    // setLoading(true);
+
+    // try {
+    //   const base64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
+    //   const base64Image = `data:image/jpeg;base64,${base64}`;
+    //   console.log("Sending to backend")
+    //   const message = {
+    //     image: base64Image,
+    //     answerKey: selectedAnswers,
+    //   };
+
+    //   if (webViewRef.current) {
+    //     (webViewRef.current as any).postMessage(JSON.stringify(message));
+    //   } else {
+    //     throw new Error("WebView not ready");
+    //   }
+
+    // } catch (err) {
+    //   console.error('Upload failed:', err);
+    //   toast.show("Something went wrong. Please try again.", { type: "danger" });
+    //   setLoading(false);
+    // }
     setResult(null)
     const isAnswerKeyComplete = Object.keys(selectedAnswers).length === totalQuestions;
     if (!isAnswerKeyComplete) {
@@ -182,6 +238,7 @@ export default function Scan() {
       );
 
       setJsonResponses(prev => [...prev, filteredJson]);
+      toast.show("Marked Successfully!", { type: "success" });
     } catch (err) {
       console.error('Upload failed:', err);
       toast.show("Something went wrong. Please position the camera and retake", { type: "danger" });
@@ -351,9 +408,18 @@ export default function Scan() {
           </SafeAreaView>
         ) : (
           <SafeAreaView className=' h-full flex items-center justify-end w-full relative' >
-            <CameraView flash={flash}
+            {/* <CameraView flash={flash}
               style={{ width: "100%", height: "100%", position: "absolute" }} ref={cameraRef} facing={facing}>
-            </CameraView>
+            </CameraView> */}
+            <LiveCameraView
+              camRef={cameraRef}
+              style={{ width: '100%', height: '100%', position: 'absolute' }}
+              flash="auto"
+              facing="back"
+            />
+
+            {!isWebViewReady && <Text style={{ color: 'gray' }}>Scanner loading...</Text>}
+
             <View className='gap-2 flex items-center justify-around w-full flex-row bg-[rgba(0,0,0,0.32)] py-3'>
               <TouchableOpacity onPress={toggleFlash} className=' flex items-center justify-center'>
                 {flash === "on" ? <Ionicons name="flash" size={24} color="white" /> :
@@ -371,6 +437,33 @@ export default function Scan() {
 
           </SafeAreaView>
         )}
+      {/* {htmlUri && (
+        <WebView
+          ref={webViewRef}
+          source={{ html: htmlUri }}
+          javaScriptEnabled={true}
+          domStorageEnabled={true}
+          originWhitelist={['*']}
+          onLoadEnd={() => { setIsWebViewReady(true); console.log("done loading") }}
+          onMessage={(event) => {
+            try {
+              const data = JSON.parse(event.nativeEvent.data);
+              const filteredJson = Object.fromEntries(
+                Object.entries(data).filter(([key]) => allowedFields.includes(key))
+              );
+              setJsonResponses(prev => [...prev, filteredJson]);
+              setResult(data);
+              toast.show("Marked Successfully!", { type: "success" });
+            } catch (error) {
+              console.error("Error parsing WebView data", error);
+            } finally {
+              setLoading(false);
+            }
+          }}
+          style={{ height: 1, width: 1, opacity: 0 }}
+        />
+      )} */}
+
     </View>
 
   );
