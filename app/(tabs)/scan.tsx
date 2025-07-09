@@ -48,11 +48,13 @@ export default function Scan() {
   const toast = useToast();
   const [selectedAnswers, setSelectedAnswers] = useState<{ [key: number]: number | undefined }>({});
   const [totalQuestions, setTotalQuestions] = useState<number>(0)
-  // const [captureMode, setCaptureMode] = useState<boolean>(false)
+  const [captureMode, setCaptureMode] = useState<boolean>(false)
   const [jsonResponses, setJsonResponses] = useState<any[]>([]);
   const [formattedChoices, setFormattedChoices] = useState<any[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [htmlUri, setHtmlUri] = useState('');
+  const [isCameraVisible, setIsCameraVisible] = useState(true);
+
 
 
   const resultsDir = FileSystem.documentDirectory + "Scanned_results/";
@@ -167,47 +169,16 @@ export default function Scan() {
     if (cameraRef.current) {
       const photo = await cameraRef.current.takePictureAsync();
       setImage(photo.uri);
-      // setCaptureMode(false)
     }
   };
 
+  const handleScan = (image: string) => {
+    console.log("🎉 Got scanned image in parent!");
+    setImage(image);
+
+  };
+
   const uploadImage = async (uri: any) => {
-    // if (!isWebViewReady || !webViewRef.current) {
-    //   toast.show("Please wait for scanner to initialize...", { type: "warning" });
-    //   setLoading(false);
-    //   return;
-    // }
-
-    // setResult(null);
-
-    // const isAnswerKeyComplete = Object.keys(selectedAnswers).length === totalQuestions;
-    // if (!isAnswerKeyComplete) {
-    //   toast.show("Please enter answers for all questions before uploading.", { type: "danger" });
-    //   return;
-    // }
-
-    // setLoading(true);
-
-    // try {
-    //   const base64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
-    //   const base64Image = `data:image/jpeg;base64,${base64}`;
-    //   console.log("Sending to backend")
-    //   const message = {
-    //     image: base64Image,
-    //     answerKey: selectedAnswers,
-    //   };
-
-    //   if (webViewRef.current) {
-    //     (webViewRef.current as any).postMessage(JSON.stringify(message));
-    //   } else {
-    //     throw new Error("WebView not ready");
-    //   }
-
-    // } catch (err) {
-    //   console.error('Upload failed:', err);
-    //   toast.show("Something went wrong. Please try again.", { type: "danger" });
-    //   setLoading(false);
-    // }
     setResult(null)
     const isAnswerKeyComplete = Object.keys(selectedAnswers).length === totalQuestions;
     if (!isAnswerKeyComplete) {
@@ -224,8 +195,8 @@ export default function Scan() {
       name: 'image.png',
     } as any);
     formData.append('answer_key', JSON.stringify(selectedAnswers));
-    console.log('Uploading image:', uri);
-    console.log('Form data:', formData.getAll('file'));
+    // console.log('Uploading image:', uri);
+    // console.log('Form data:', formData.getAll('file'));
     try {
       const res = await fetch('https://bubble-sheet-marker-backend.onrender.com/scan', {
         method: 'POST',
@@ -264,7 +235,7 @@ export default function Scan() {
 
   return (
     <View className='flex-1'>
-      {image
+      {image && !isCameraVisible
         ? (
           <SafeAreaView style={{ height: "100%" }}>
             <SafeAreaView style={styles.centeredView}>
@@ -399,7 +370,7 @@ export default function Scan() {
               </ScrollView>
 
               <View className='flex justify-around flex-row items-center'>
-                <Button title="Capture" onPress={() => { setImage(null); setResult(null); }} />
+                <Button title="Capture" onPress={() => { setImage(null); setResult(null); setIsCameraVisible(true) }} />
                 <Button title="Export" onPress={exportToExcel} disabled={result === null} />
                 <Button title="Upload" onPress={() => uploadImage(image)} />
               </View>
@@ -416,9 +387,11 @@ export default function Scan() {
               style={{ width: '100%', height: '100%', position: 'absolute' }}
               flash="auto"
               facing="back"
+              onScan={handleScan}
+              setIsCameraVisible={setIsCameraVisible}
             />
 
-            {!isWebViewReady && <Text style={{ color: 'gray' }}>Scanner loading...</Text>}
+
 
             <View className='gap-2 flex items-center justify-around w-full flex-row bg-[rgba(0,0,0,0.32)] py-3'>
               <TouchableOpacity onPress={toggleFlash} className=' flex items-center justify-center'>

@@ -1,503 +1,158 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="UTF-8" />
-    <title>Bubble Sheet Scanner</title>
-    <script
-      async
-      src="https://docs.opencv.org/4.x/opencv.js"
-      onload="onOpenCvReady();"
-      type="text/javascript"
-    ></script>
-    <style>
-      body {
-        font-family: sans-serif;
-        padding: 20px;
-      }
-      canvas,
-      img {
-        max-width: 100%;
-        margin-top: 10px;
-      }
-    </style>
-  </head>
-  <body>
-    <h2>Upload Answer Sheet Image</h2>
-    <h2 id="status">Loading OpenCV.js...</h2>
-    <input type="file" accept="image/*" id="upload" />
-    <canvas id="canvasOutput" style="display: none"></canvas>
-    <img id="preview" alt="Preview" style="display: none" />
-    <canvas id="output" style="display: none"></canvas>
+<head>
+  <meta charset="utf-8" />
+  <style>
+    html, body { margin: 0; padding: 0; overflow: hidden; }
+    canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+  </style>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+  <script>
+    const log = (msg) => {
+      window.ReactNativeWebView?.postMessage(JSON.stringify({ debug: msg }));
+    };
 
-    <script>
-      console.log("📦 WebView HTML Loaded!");
-      function onOpenCvReady() {
-        console.log("OpenCV.js is ready");
-        document.getElementById("status").innerText = "OpenCV.js Loaded ✔️";
-      }
+    log("📦 Loading OpenCV...");
+  </script>
+  <script src="https://docs.opencv.org/4.x/opencv.js" onload="onOpenCvReady()" async></script>
+  <script>
+    let cvReady = false;
 
-      const sendResultToApp = (data) => {
-        const payload = JSON.stringify(data);
-        if (
-          window.ReactNativeWebView &&
-          window.ReactNativeWebView.postMessage
-        ) {
-          window.ReactNativeWebView.postMessage(payload);
-        } else {
-          console.log("[Browser Test] Result:", data); // fallback
-        }
-      };
+    function onOpenCvReady() {
+      cvReady = true;
+      log("✅ OpenCV loaded");
+    }
 
-      const finalResult = {
-        fromGrading: null,
-        fromIndexing: null,
-      };
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
 
-      function trySendCombinedResult() {
-        if (finalResult.fromGrading && finalResult.fromIndexing) {
-          const combined = {
-            score: finalResult.fromGrading.score,
-            ID: parseInt(finalResult.fromIndexing.indexNumber),
-            score_percentage: finalResult.fromGrading.score,
-            total_questions: finalResult.fromGrading.totalQuestions,
-            choices: finalResult.fromGrading.choices,
-            annotated_image: finalResult.fromGrading.annotatedImage,
-            annotated_image_id: finalResult.fromIndexing.annotatedImageID,
-            annotated_image_marked: finalResult.fromGrading.annotatedImage,
-          };
-          sendResultToApp(combined);
-        }
-      }
+    function orderPoints(pts) {
+      const rect = new Array(4);
+      const s = pts.map(p => p.x + p.y);
+      const diff = pts.map(p => p.y - p.x);
+      rect[0] = pts[s.indexOf(Math.min(...s))]; // top-left
+      rect[2] = pts[s.indexOf(Math.max(...s))]; // bottom-right
+      rect[1] = pts[diff.indexOf(Math.min(...diff))]; // top-right
+      rect[3] = pts[diff.indexOf(Math.max(...diff))]; // bottom-left
+      return rect;
+    }
 
-      let answerKey = {}; // Dummy key for testing
-      for (let i = 0; i < 200; i++)
-        answerKey[i] = Math.floor(Math.random() * 5); // A–E
-
-      document
-        .getElementById("upload")
-        .addEventListener("change", async function (e) {
-          const file = e.target.files[0];
-          if (!file) return;
-
-          const reader = new FileReader();
-          reader.onload = function (event) {
-            const base64Image = event.target.result;
-            document.getElementById("preview").src = base64Image;
-            document.getElementById("preview").style.display = "block";
-            // Ensure cv is defined before calling processImage
-            if (typeof cv === "undefined") {
-              alert("OpenCV is not ready yet!");
-              return;
-            }
-            processImage(base64Image, answerKey);
-          };
-          reader.readAsDataURL(file);
-        });
-
-      document.addEventListener("message", function (event) {
-        const { image, answerKey } = JSON.parse(event.data);
-        if (typeof cv === "undefined") {
-          alert("OpenCV is not ready yet!");
-          return;
-        }
-        try {
-          const data = JSON.parse(event.data);
-          processImage(image, answerKey);
-        } catch (e) {
-          window.ReactNativeWebView?.postMessage(
-            JSON.stringify({ error: "Invalid input to WebView" })
-          );
-        }
-      });
-
-      async function processImage(base64Image, answerKey) {
-        const img = new Image();
-        img.src = base64Image;
-
-        img.onload = () => {
-          const canvas = document.createElement("canvas");
-          const ctx = canvas.getContext("2d");
-          canvas.width = img.width;
-          canvas.height = img.height;
-          ctx.drawImage(img, 0, 0);
-
-          let src = cv.imread(canvas);
-          let orig = src.clone();
-          let ratio = src.rows / 500.0;
-          let resized = new cv.Mat();
-          cv.resize(
-            src,
-            resized,
-            new cv.Size(0, 0),
-            500 / src.rows,
-            500 / src.rows
-          );
-
-          // Convert to grayscale and blur
-          let gray = new cv.Mat();
-          let blurred = new cv.Mat();
-          let edged = new cv.Mat();
-          cv.cvtColor(resized, gray, cv.COLOR_RGBA2GRAY);
-          cv.GaussianBlur(gray, blurred, new cv.Size(7, 7), 0, 0);
-          cv.Canny(blurred, edged, 50, 200);
-
-          // Find contours
-          let contours = new cv.MatVector();
-          let hierarchy = new cv.Mat();
-          cv.findContours(
-            edged,
-            contours,
-            hierarchy,
-            cv.RETR_LIST,
-            cv.CHAIN_APPROX_SIMPLE
-          );
-
-          let screenCnt = findDocumentContour(contours);
-          if (!screenCnt) {
-            window.ReactNativeWebView.postMessage(
-              JSON.stringify({ error: "No document found" })
-            );
-            return;
+    function findDocumentContour(contours) {
+      let maxArea = 0;
+      let screenCnt = null;
+      for (let i = 0; i < contours.size(); i++) {
+        const c = contours.get(i);
+        const peri = cv.arcLength(c, true);
+        const approx = new cv.Mat();
+        cv.approxPolyDP(c, approx, 0.02 * peri, true);
+        if (approx.rows === 4) {
+          const area = cv.contourArea(approx);
+          if (area > maxArea) {
+            maxArea = area;
+            screenCnt = approx.clone();
           }
-
-          let warped = fourPointTransform(orig, screenCnt, ratio);
-
-          // You now have the cropped bubble sheet!
-          // Next: extract and grade answers
-          gradeSheet(warped, answerKey);
-        };
-      }
-
-      function findDocumentContour(contours) {
-        for (let i = 0; i < contours.size(); i++) {
-          const c = contours.get(i);
-          const peri = cv.arcLength(c, true);
-          const approx = new cv.Mat();
-          cv.approxPolyDP(c, approx, 0.02 * peri, true);
-          if (approx.rows === 4) return approx;
         }
-        return null;
+        approx.delete();
+      }
+      return screenCnt;
+    }
+
+    window.addEventListener('message', function (e) {
+      if (!cvReady) {
+        log("❌ OpenCV not ready yet");
+        return;
       }
 
-      function orderPoints(pts) {
-        let rect = new cv.Mat(4, 1, cv.CV_32FC2);
-        let arr = [];
-        for (let i = 0; i < 4; i++) {
-          let x = pts.intPtr(i, 0)[0];
-          let y = pts.intPtr(i, 0)[1];
-          arr.push({ x, y, sum: x + y, diff: x - y });
-        }
-        arr.sort((a, b) => a.sum - b.sum);
-        rect.data32F[0] = arr[0].x;
-        rect.data32F[1] = arr[0].y; // top-left
-        rect.data32F[4] = arr[3].x;
-        rect.data32F[5] = arr[3].y; // bottom-right
+      log("📷 Frame received");
 
-        arr.sort((a, b) => a.diff - b.diff);
-        rect.data32F[2] = arr[0].x;
-        rect.data32F[3] = arr[0].y; // top-right
-        rect.data32F[6] = arr[3].x;
-        rect.data32F[7] = arr[3].y; // bottom-left
+      let base64 = e.data;
+      let img = new Image();
+      img.onload = () => {
+        log("🖼 Image loaded");
 
-        return rect;
-      }
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = img.width;
+        tempCanvas.height = img.height;
+        const tempCtx = tempCanvas.getContext('2d');
+        tempCtx.drawImage(img, 0, 0);
 
-      function fourPointTransform(src, pts, ratio) {
-        let rect = orderPoints(pts);
-        for (let i = 0; i < rect.data32F.length; i++) rect.data32F[i] *= ratio;
+        let imageData = tempCtx.getImageData(0, 0, img.width, img.height);
+        let src = cv.matFromImageData(imageData);
 
-        let [tlX, tlY, trX, trY, brX, brY, blX, blY] = rect.data32F;
-        let widthA = Math.hypot(brX - blX, brY - blY);
-        let widthB = Math.hypot(trX - tlX, trY - tlY);
-        let maxWidth = Math.max(Math.floor(widthA), Math.floor(widthB));
+        const ratio = src.rows / 500.0;
+        const resized = new cv.Mat();
+        const dsize = new cv.Size(Math.floor(src.cols / ratio), 500);
+        cv.resize(src, resized, dsize, 0, 0, cv.INTER_AREA);
 
-        let heightA = Math.hypot(trX - brX, trY - brY);
-        let heightB = Math.hypot(tlX - blX, tlY - blY);
-        let maxHeight = Math.max(Math.floor(heightA), Math.floor(heightB));
-
-        let dst = cv.matFromArray(4, 1, cv.CV_32FC2, [
-          0,
-          0,
-          maxWidth - 1,
-          0,
-          maxWidth - 1,
-          maxHeight - 1,
-          0,
-          maxHeight - 1,
-        ]);
-
-        let M = cv.getPerspectiveTransform(rect, dst);
-        let warped = new cv.Mat();
-        let dsize = new cv.Size(maxWidth, maxHeight);
-        cv.warpPerspective(src, warped, M, dsize);
-
-        return warped;
-      }
-
-      function gradeSheet(warpedMat, answerKey) {
+        let rgb = new cv.Mat();
         let gray = new cv.Mat();
         let blurred = new cv.Mat();
-        let thresh = new cv.Mat();
+        let edged = new cv.Mat();
 
-        // Convert to grayscale and threshold
-        cv.cvtColor(warpedMat, gray, cv.COLOR_RGBA2GRAY);
-        cv.GaussianBlur(gray, blurred, new cv.Size(5, 5), 0);
-        cv.threshold(
-          blurred,
-          thresh,
-          0,
-          255,
-          cv.THRESH_BINARY_INV + cv.THRESH_OTSU
-        );
+        cv.cvtColor(resized, rgb, cv.COLOR_RGBA2RGB);
+        cv.cvtColor(rgb, gray, cv.COLOR_RGB2GRAY);
+        cv.GaussianBlur(gray, blurred, new cv.Size(7, 7), 0);
+        cv.Canny(blurred, edged, 50, 200);
 
-        // Find all contours on thresholded image
-        let contours = new cv.MatVector();
-        let hierarchy = new cv.Mat();
-        cv.findContours(
-          thresh,
-          contours,
-          hierarchy,
-          cv.RETR_EXTERNAL,
-          cv.CHAIN_APPROX_SIMPLE
-        );
+        const contours = new cv.MatVector();
+        const hierarchy = new cv.Mat();
+        cv.findContours(edged, contours, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
 
-        let bubbleContours = [];
-        for (let i = 0; i < contours.size(); i++) {
-          let c = contours.get(i);
-          let rect = cv.boundingRect(c);
-          let ar = rect.width / rect.height;
-          if (rect.width >= 10 && rect.height >= 10 && ar >= 0.9 && ar <= 1.1) {
-            bubbleContours.push({ contour: c, rect: rect });
+        const screenCnt = findDocumentContour(contours);
+
+        if (screenCnt) {
+          const points = [];
+          for (let i = 0; i < 4; i++) {
+            const p = screenCnt.intPtr(i, 0);
+            points.push({ x: p[0] * ratio, y: p[1] * ratio });
           }
+
+          log("✅ Sending detected corners");
+          window.ReactNativeWebView?.postMessage(JSON.stringify(points));
+
+          const ordered = orderPoints(points);
+          const srcTri = cv.matFromArray(4, 1, cv.CV_32FC2, [].concat(...ordered.map(p => [p.x, p.y])));
+          const maxWidth = 600;
+          const maxHeight = 800;
+          const dstTri = cv.matFromArray(4, 1, cv.CV_32FC2, [
+            0, 0,
+            maxWidth, 0,
+            maxWidth, maxHeight,
+            0, maxHeight
+          ]);
+
+          const M = cv.getPerspectiveTransform(srcTri, dstTri);
+          const warped = new cv.Mat();
+          cv.warpPerspective(src, warped, M, new cv.Size(maxWidth, maxHeight));
+
+          const canvas2 = document.createElement('canvas');
+          canvas2.width = maxWidth;
+          canvas2.height = maxHeight;
+          const ctx2 = canvas2.getContext('2d');
+          const imageData = new ImageData(new Uint8ClampedArray(warped.data), warped.cols, warped.rows);
+          ctx2.putImageData(imageData, 0, 0);
+
+          const base64Scan = canvas2.toDataURL('image/jpeg', 0.9);
+          log("📸 Scanned image ready");
+          window.ReactNativeWebView?.postMessage(JSON.stringify({ scan: base64Scan }));
+
+          rgb.delete(); gray.delete(); blurred.delete(); edged.delete();
+          contours.delete(); hierarchy.delete();
+          screenCnt.delete(); warped.delete(); srcTri.delete(); dstTri.delete(); M.delete();
+        } else {
+          log("❌ No document contour found");
         }
 
-        // Sort bubbles left-to-right then top-to-bottom
-        bubbleContours.sort((a, b) => {
-          let dy = a.rect.y - b.rect.y;
-          if (Math.abs(dy) < 10) return a.rect.x - b.rect.x;
-          return dy;
-        });
+        src.delete(); resized.delete();
+      };
 
-        // Group every 5 bubbles as a question
-        const questions = [];
-        for (let i = 0; i < bubbleContours.length; i += 5) {
-          questions.push(bubbleContours.slice(i, i + 5));
-        }
-
-        let correct = 0;
-        let choices = {};
-        for (let q = 0; q < questions.length; q++) {
-          const qBubbles = questions[q];
-          let bubbled = null;
-
-          for (let j = 0; j < qBubbles.length; j++) {
-            const c = qBubbles[j].contour;
-            let mask = cv.Mat.zeros(thresh.rows, thresh.cols, cv.CV_8UC1);
-            cv.drawContours(
-              mask,
-              new cv.MatVector([c]),
-              -1,
-              new cv.Scalar(255),
-              -1
-            );
-
-            let masked = new cv.Mat();
-            cv.bitwise_and(thresh, thresh, masked, mask);
-            let total = cv.countNonZero(masked);
-
-            if (bubbled === null || total > bubbled.total) {
-              bubbled = { index: j, total: total };
-            }
-
-            mask.delete();
-            masked.delete();
-          }
-
-          choices[q] = bubbled.index;
-
-          if (answerKey[q] === bubbled.index) {
-            correct++;
-          }
-
-          // Mark correct or wrong in green/red
-          const color =
-            answerKey[q] === bubbled.index
-              ? new cv.Scalar(0, 255, 0)
-              : new cv.Scalar(0, 0, 255);
-          cv.drawContours(
-            warpedMat,
-            new cv.MatVector([qBubbles[bubbled.index].contour]),
-            -1,
-            color,
-            2
-          );
-        }
-
-        const score = (correct / Object.keys(answerKey).length) * 100;
-        cv.putText(
-          warpedMat,
-          `Score: ${score.toFixed(2)}%`,
-          new cv.Point(10, 30),
-          cv.FONT_HERSHEY_SIMPLEX,
-          1,
-          new cv.Scalar(255, 0, 0),
-          2
-        );
-
-        // Return result as base64 image
-        const resultCanvas = document.createElement("canvas");
-        resultCanvas.width = warpedMat.cols;
-        resultCanvas.height = warpedMat.rows;
-        cv.imshow(resultCanvas, warpedMat);
-        const resultBase64 = resultCanvas.toDataURL("image/png");
-
-        finalResult.fromGrading = {
-          score: Math.round(score),
-          totalQuestions: Object.keys(answerKey).length,
-          correctAnswers: correct,
-          choices,
-          annotatedImage: resultBase64,
-        };
-
-        trySendCombinedResult();
-
-        // Cleanup
-        warpedMat.delete();
-        gray.delete();
-        blurred.delete();
-        thresh.delete();
-      }
-
-      function detectIndexNumber(warpedMat, maskImageSrc) {
-        const indexMask = new Image();
-        indexMask.src = maskImageSrc;
-
-        indexMask.onload = () => {
-          const maskCanvas = document.createElement("canvas");
-          const ctx = maskCanvas.getContext("2d");
-          maskCanvas.width = warpedMat.cols;
-          maskCanvas.height = warpedMat.rows;
-          ctx.drawImage(indexMask, 0, 0, warpedMat.cols, warpedMat.rows);
-
-          // Read mask as grayscale
-          const maskMat = cv.imread(maskCanvas);
-          let grayMask = new cv.Mat();
-          cv.cvtColor(maskMat, grayMask, cv.COLOR_RGBA2GRAY);
-
-          // Bitwise AND with warped sheet
-          let masked = new cv.Mat();
-          cv.bitwise_and(warpedMat, warpedMat, masked, grayMask);
-
-          // Preprocess
-          let gray = new cv.Mat();
-          let blurred = new cv.Mat();
-          let thresh = new cv.Mat();
-          cv.cvtColor(masked, gray, cv.COLOR_RGBA2GRAY);
-          cv.GaussianBlur(gray, blurred, new cv.Size(5, 5), 0);
-          cv.threshold(
-            blurred,
-            thresh,
-            0,
-            255,
-            cv.THRESH_BINARY_INV + cv.THRESH_OTSU
-          );
-
-          // Find contours (digits bubbles)
-          let contours = new cv.MatVector();
-          let hierarchy = new cv.Mat();
-          cv.findContours(
-            thresh,
-            contours,
-            hierarchy,
-            cv.RETR_EXTERNAL,
-            cv.CHAIN_APPROX_SIMPLE
-          );
-
-          let digitContours = [];
-          for (let i = 0; i < contours.size(); i++) {
-            let c = contours.get(i);
-            let rect = cv.boundingRect(c);
-            let ar = rect.width / rect.height;
-            if (rect.width > 5 && rect.height > 5 && ar >= 0.7 && ar <= 1.3) {
-              digitContours.push({ contour: c, rect });
-            }
-          }
-
-          // Sort contours left-to-right then top-to-bottom
-          digitContours.sort((a, b) => {
-            let dx = a.rect.x - b.rect.x;
-            if (Math.abs(dx) < 10) return a.rect.y - b.rect.y;
-            return dx;
-          });
-
-          const digits = [];
-          for (let i = 0; i < digitContours.length; i += 10) {
-            const digitSet = digitContours.slice(i, i + 10);
-            digitSet.sort((a, b) => a.rect.y - b.rect.y);
-
-            let bubbled = null;
-            for (let j = 0; j < digitSet.length; j++) {
-              const mask = cv.Mat.zeros(thresh.rows, thresh.cols, cv.CV_8UC1);
-              const c = digitSet[j].contour;
-
-              cv.drawContours(
-                mask,
-                new cv.MatVector([c]),
-                -1,
-                new cv.Scalar(255),
-                -1
-              );
-              let maskedDigit = new cv.Mat();
-              cv.bitwise_and(thresh, thresh, maskedDigit, mask);
-              let total = cv.countNonZero(maskedDigit);
-              if (!bubbled || total > bubbled.total) {
-                bubbled = { index: j, total };
-              }
-
-              mask.delete();
-              maskedDigit.delete();
-            }
-
-            // If none selected, use 0
-            const digit = (bubbled?.index + 1) % 10;
-            digits.push(digit);
-          }
-
-          const indexNumber = digits.join("");
-
-          // Annotate
-          cv.putText(
-            warpedMat,
-            `ID: ${indexNumber}`,
-            new cv.Point(10, 60),
-            cv.FONT_HERSHEY_SIMPLEX,
-            1,
-            new cv.Scalar(255, 0, 0),
-            2
-          );
-
-          const canvas = document.createElement("canvas");
-          canvas.width = warpedMat.cols;
-          canvas.height = warpedMat.rows;
-          cv.imshow(canvas, warpedMat);
-          const base64ID = canvas.toDataURL("image/png");
-
-          finalResult.fromIndexing = {
-            indexNumber,
-            annotatedImageID: base64ID,
-          };
-
-          trySendCombinedResult();
-
-          // Cleanup
-          maskMat.delete();
-          grayMask.delete();
-          masked.delete();
-          gray.delete();
-          blurred.delete();
-          thresh.delete();
-        };
-      }
-    </script>
-  </body>
+      img.onerror = () => log("❌ Error loading image");
+      img.src = 'data:image/jpeg;base64,' + base64;
+    });
+  </script>
+</body>
 </html>
