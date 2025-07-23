@@ -4,7 +4,7 @@
     "slug": "scantron",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/scanner.png",
+    "icon": "./assets/images/scantron.png",
     "scheme": "scantron",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -17,8 +17,8 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/images/scantron.png",
+        "backgroundColor": "#232634"
       },
       "edgeToEdgeEnabled": true,
       "package": "com.anonymous.scan",
@@ -30,7 +30,7 @@
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/scantron.png"
     },
     "plugins": [
       [
@@ -45,10 +45,10 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/images/scantron.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
+          "backgroundColor": "#232634"
         }
       ],
       "expo-asset",

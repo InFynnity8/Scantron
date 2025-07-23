@@ -1,11 +1,10 @@
 // CameraScanner.js
-import React, { useRef, useEffect, forwardRef, useState } from 'react';
-import { View, StyleSheet, Text, StyleProp, ViewStyle, Dimensions, AppState, Modal, Image, TouchableOpacity, ActivityIndicator, } from 'react-native';
-import { CameraView, useCameraPermissions, CameraCapturedPicture, CameraType, FlashMode } from 'expo-camera';
-import { WebView } from 'react-native-webview';
-import type { WebView as WebViewType } from 'react-native-webview';
-import Svg, { Polygon } from 'react-native-svg';
+import { CameraType, CameraView, FlashMode, useCameraPermissions } from 'expo-camera';
+import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { ActivityIndicator, AppState, Dimensions, Image, Modal, StyleProp, StyleSheet, Text, TouchableOpacity, View, ViewStyle, } from 'react-native';
 import { useToast } from 'react-native-toast-notifications';
+import type { WebView as WebViewType } from 'react-native-webview';
+import { WebView } from 'react-native-webview';
 
 
 
@@ -24,7 +23,8 @@ type LiveCameraViewProps = {
 
 
 
-const LiveCameraView: React.FC<LiveCameraViewProps> = ({ style, flash, facing, camRef, onScan, setIsCameraVisible }) => {
+const LiveCameraView = forwardRef<any, LiveCameraViewProps>((props, ref) => {
+  const { style, flash, facing, camRef, onScan, setIsCameraVisible } = props;
   const [isWebViewReady, setIsWebViewReady] = useState(false);
   const [permission, requestPermission] = useCameraPermissions();
   const webviewRef = useRef<WebViewType>(null);
@@ -39,6 +39,9 @@ const LiveCameraView: React.FC<LiveCameraViewProps> = ({ style, flash, facing, c
 
 
 
+  useImperativeHandle(ref, () => ({
+    captureFrame
+  }));
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', nextAppState => {
@@ -63,20 +66,20 @@ const LiveCameraView: React.FC<LiveCameraViewProps> = ({ style, flash, facing, c
       return;
     }
 
-    const interval = setInterval(() => {
-      if (camRef.current && !modalVisible) {
-        captureFrame();
-      }
-      setCountdown(10);
-    }, 10000); // slow it down for stability
+    // const interval = setInterval(() => {
+    //   if (camRef.current && !modalVisible) {
+    //     captureFrame();
+    //   }
+    //   setCountdown(10);
+    // }, 10000); 
 
-    const countdownInterval = setInterval(() => {
-      setCountdown((prev) => (prev > 0 ? prev - 1 : 0));
-    }, 1000);
-    return () => {
-      clearInterval(interval);
-      clearInterval(countdownInterval);
-    };
+    // const countdownInterval = setInterval(() => {
+    //   setCountdown((prev) => (prev > 0 ? prev - 1 : 0));
+    // }, 1000);
+    // return () => {
+    //   clearInterval(interval);
+    //   clearInterval(countdownInterval);
+    // };
   }, [permission, modalVisible]);
 
 
@@ -224,8 +227,8 @@ const LiveCameraView: React.FC<LiveCameraViewProps> = ({ style, flash, facing, c
 
           const ordered = orderPoints(points);
           const srcTri = cv.matFromArray(4, 1, cv.CV_32FC2, [].concat(...ordered.map(p => [p.x, p.y])));
-          const maxWidth = 1737;
-          const maxHeight = 2560;
+          const maxWidth = 2480;
+          const maxHeight = 3508;
           const dstTri = cv.matFromArray(4, 1, cv.CV_32FC2, [
             0, 0,
             maxWidth, 0,
@@ -272,7 +275,7 @@ const LiveCameraView: React.FC<LiveCameraViewProps> = ({ style, flash, facing, c
   const captureFrame = async () => {
     if (captureInProgress.current || appState.current !== 'active') return;
     if (modalVisible) return;
-
+    console.log("Triggered by someone0")
     const ref = camRef?.current;
     if (!ref || typeof ref.takePictureAsync !== 'function') {
       console.warn('⛔ camRef not ready or takePictureAsync is unavailable');
@@ -324,10 +327,10 @@ const LiveCameraView: React.FC<LiveCameraViewProps> = ({ style, flash, facing, c
       />
       {processing && (
         <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color="#00ff00" />
+          <ActivityIndicator size="large" color="#FFD600" />
         </View>
       )}
-      <View style={{
+      {/* <View style={{
         position: 'absolute',
         top: 20,
         right: 20,
@@ -339,7 +342,7 @@ const LiveCameraView: React.FC<LiveCameraViewProps> = ({ style, flash, facing, c
         <Text style={{ color: 'white', fontSize: 16 }}>
           Next scan in: {countdown}s
         </Text>
-      </View>
+      </View> */}
 
       {/* 🟢 SVG Overlay */}
       {/* <Svg style={StyleSheet.absoluteFill}>
@@ -395,7 +398,9 @@ const LiveCameraView: React.FC<LiveCameraViewProps> = ({ style, flash, facing, c
       <Modal visible={modalVisible} transparent animationType="slide">
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Text>Preview</Text>
+            <View className='w-full flex items-center'>
+              <Text className='text-[#FFD600] font-semibold text-[18px]'>Preview</Text>
+            </View>
             <Image
               source={{ uri: scannedImage! }}
               style={styles.scannedImage}
@@ -403,18 +408,18 @@ const LiveCameraView: React.FC<LiveCameraViewProps> = ({ style, flash, facing, c
             />
             <View className='w-full flex flex-row items-center justify-between'>
               <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.closeButton}>
-              <Text style={styles.closeText}>Retake</Text>
-            </TouchableOpacity>
+                <Text style={styles.closeText}>Retake</Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              onPress={() => {
-                setModalVisible(false);
-                setIsCameraVisible?.(false); // <-- hide camera after confirming
-              }}
-              style={[styles.closeButton, { backgroundColor: 'green', marginTop: 10 }]}
-            >
-              <Text style={styles.closeText}>Use This Image</Text>
-            </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => {
+                  setModalVisible(false);
+                  setIsCameraVisible?.(false); // <-- hide camera after confirming
+                }}
+                style={[styles.closeButton, { backgroundColor: 'green', marginTop: 10 }]}
+              >
+                <Text style={styles.closeText}>Use This Image</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </View>
@@ -422,7 +427,7 @@ const LiveCameraView: React.FC<LiveCameraViewProps> = ({ style, flash, facing, c
 
     </>
   );
-}
+});
 
 
 const styles = StyleSheet.create({
@@ -435,35 +440,40 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.8)',
+    backgroundColor: 'rgba(24, 26, 32, 0.9)', // Dark background matching your app theme
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalContent: {
     width: '90%',
     height: '80%',
-    backgroundColor: '#fff',
+    backgroundColor: '#232634', // Dark card background matching your app theme
     borderRadius: 12,
-    padding: 10,
+    padding: 20,
+    elevation: 10,
   },
   scannedImage: {
     width: '100%',
-    height: '90%',
+    height: '85%',
+    marginVertical: 10,
     borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#FFD600', // Yellow border for scanned image
   },
   closeButton: {
     marginTop: 10,
     padding: 10,
-    backgroundColor: '#333',
+    backgroundColor: '#FFD600', // Yellow button background
     borderRadius: 8,
     alignItems: 'center',
-    width: "45%"
+    width: "45%",
   },
   closeText: {
-    color: '#fff',
+    color: '#232634', // Dark text color for contrast
     fontWeight: 'bold',
   },
 });
 
+LiveCameraView.displayName = "LiveCameraView";
 
 export default LiveCameraView;

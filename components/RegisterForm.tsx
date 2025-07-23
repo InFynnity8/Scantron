@@ -1,99 +1,108 @@
-import React, { useState } from 'react';
-import { View, TextInput, Text, StyleSheet, Alert, TouchableOpacity } from 'react-native';
-import { Link, router } from 'expo-router'
-import * as SecureStore from 'expo-secure-store';
 import { AntDesign } from '@expo/vector-icons';
-
+import { Link, router } from 'expo-router';
+import React, { useState } from 'react';
+import { Alert, Keyboard, StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 
 export default function RegisterForm() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [confirm, setConfirm] = useState('');
+    const [emailFocused, setEmailFocused] = useState(false);
+    const [passwordFocused, setPasswordFocused] = useState(false);
+    const [confirmFocused, setConfirmFocused] = useState(false);
 
-
-    const handleLogin = async () => {
-        if (!email || !password) {
+    const handleRegister = async () => {
+        if (!email || !password || !confirm) {
             Alert.alert('Validation Error', 'Please fill in all fields');
             return;
         }
-
-        console.log('Logging in with:', email, password);
-        await SecureStore.setItemAsync("token", "Myown");
-        router.replace("/");
+        if (password !== confirm) {
+            Alert.alert('Validation Error', 'Passwords do not match');
+            return;
+        }
+        // Simulate registration
+        router.replace("/login");
     };
 
-
     return (
-        <View style={styles.container} >
-            <View style={{ marginBottom: 40, display: "flex", alignItems: "center" }}>
-                <Text style={styles.title}>Create an account</Text>
-                <View className='flex flex-row'>
-                    <Text style={{ color: "rgb(202,202,203)", fontSize: 16, fontWeight: "500" }}>Already have an account? </Text>
-                    <Link href="/login">Login</Link>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+            <View style={styles.container}>
+                <View style={{ marginBottom: 40, alignItems: "center" }}>
+                    <Text style={styles.title}>Create Account</Text>
+                    <View style={{ flexDirection: "row", marginTop: 4 }}>
+                        <Text style={{ color: "#CACACB", fontSize: 16 }}>Already have an account? </Text>
+                        <Link href="/login" style={{ color: "#FFD600", fontWeight: "bold", fontSize: 16 }}>Login</Link>
+                    </View>
+                </View>
+                <View style={{ marginBottom: 10 }}>
+                    <Text style={styles.label}>Email</Text>
+                    <TextInput
+                        placeholder="your@email.com"
+                        placeholderTextColor="#888"
+                        value={email}
+                        onChangeText={setEmail}
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        style={[
+                            styles.input,
+                            emailFocused && styles.inputFocused
+                        ]}
+                        textContentType='emailAddress'
+                        onFocus={() => setEmailFocused(true)}
+                        onBlur={() => setEmailFocused(false)}
+                    />
+                </View>
+                <View style={{ marginBottom: 10 }}>
+                    <Text style={styles.label}>Password</Text>
+                    <TextInput
+                        placeholder="••••••••"
+                        placeholderTextColor="#888"
+                        value={password}
+                        onChangeText={setPassword}
+                        secureTextEntry
+                        style={[
+                            styles.input,
+                            passwordFocused && styles.inputFocused
+                        ]}
+                        onFocus={() => setPasswordFocused(true)}
+                        onBlur={() => setPasswordFocused(false)}
+                    />
+                </View>
+                <View style={{ marginBottom: 10 }}>
+                    <Text style={styles.label}>Confirm Password</Text>
+                    <TextInput
+                        placeholder="••••••••"
+                        placeholderTextColor="#888"
+                        value={confirm}
+                        onChangeText={setConfirm}
+                        secureTextEntry
+                        style={[
+                            styles.input,
+                            confirmFocused && styles.inputFocused
+                        ]}
+                        onFocus={() => setConfirmFocused(true)}
+                        onBlur={() => setConfirmFocused(false)}
+                    />
+                </View>
+                <TouchableOpacity onPress={handleRegister} style={styles.registerBtn}>
+                    <Text style={styles.registerBtnText}>Register</Text>
+                </TouchableOpacity>
+                <View style={styles.dividerContainer}>
+                    <View style={styles.dividerLine} />
+                    <Text style={styles.dividerText}>Or sign up with</Text>
+                </View>
+                <View style={styles.socialRow}>
+                    <TouchableOpacity onPress={handleRegister} style={styles.socialBtn}>
+                        <AntDesign name="google" size={20} color="#FFD600" style={{ marginHorizontal: 5 }} />
+                        <Text style={styles.socialBtnText}>Google</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={handleRegister} style={styles.socialBtn}>
+                        <AntDesign name="apple1" size={20} color="#FFD600" style={{ marginHorizontal: 5 }} />
+                        <Text style={styles.socialBtnText}>Apple</Text>
+                    </TouchableOpacity>
                 </View>
             </View>
-            <View style={{ marginBottom: 10 }}>
-                <Text style={{ fontWeight: "500", marginBottom: 10, fontSize: 18 }} > Full Name</Text>
-                <TextInput
-                    placeholder="John Doe"
-                    value={email}
-                    onChangeText={setEmail}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    style={styles.input}
-                    textContentType='name'
-                />
-            </View>
-            <View style={{ marginBottom: 10 }}>
-                <Text style={{ fontWeight: "500", marginBottom: 10, fontSize: 18 }} >Email Address</Text>
-                <TextInput
-                    placeholder="infynnity@ghost.com"
-                    value={email}
-                    onChangeText={setEmail}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    style={styles.input}
-                    textContentType='emailAddress'
-                />
-            </View>
-            <View>
-                <Text style={{ fontWeight: "500", marginBottom: 10, fontSize: 18 }}>Password</Text>
-                <TextInput
-                    placeholder=""
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry
-                    style={styles.input}
-                />
-            </View>
-
-            <View className='w-full flex items-center flex-row justify-between' style={{ marginBottom: 10 }}>
-                <Text style={{ color: "rgb(202,202,203)", fontSize: 16, fontWeight: "500" }}>Forgot Password</Text>
-            </View>
-
-            <TouchableOpacity onPress={handleLogin} style={{ backgroundColor: "rgb(31,36,85)", borderRadius: 200, padding: 13, display: "flex", alignItems: 'center' }}>
-                <Text className='text-white text-[18px] font-bold'>
-                    Register
-                </Text>
-            </TouchableOpacity>
-            <View className='flex items-center w-full' style={{ position: "relative", marginVertical: 30 }}>
-                <View className='w-full' style={{ position: "absolute", backgroundColor: "rgb(202,202,203)", height: 1, top: 10 }} />
-                <Text style={{ backgroundColor: "white", paddingHorizontal: 5 }}>Or continue with</Text>
-            </View>
-            <View className='flex flex-row items-center w-full justify-around'>
-                <TouchableOpacity onPress={handleLogin} className='border flex flex-row items-center justify-center' style={{ borderColor: "rgb(202,202,203)", width: 160, backgroundColor: "transparent", borderRadius: 200, padding: 13, display: "flex", alignItems: 'center' }}>
-                    <AntDesign name="google" size={24} color="black" style={{ marginHorizontal: 5 }} />
-                    <Text className='text-black text-[18px] font-bold'>
-                        Google
-                    </Text>
-                </TouchableOpacity>
-                <TouchableOpacity className='border flex flex-row items-center justify-center' onPress={handleLogin} style={{ borderColor: "rgb(202,202,203)", width: 160, backgroundColor: "transparent", borderRadius: 200, padding: 13, display: "flex", alignItems: 'center' }}>
-                    <AntDesign name="apple1" size={24} color="black" style={{ marginHorizontal: 5 }} />
-                    <Text className='text-black text-[18px] font-bold'>
-                        Apple
-                    </Text>
-                </TouchableOpacity>
-            </View>
-        </View>
+        </TouchableWithoutFeedback>
     );
 }
 
@@ -102,19 +111,84 @@ const styles = StyleSheet.create({
         padding: 20,
         flex: 1,
         justifyContent: 'center',
+        backgroundColor: "#181A20",
     },
     title: {
         fontSize: 30,
         fontWeight: "600",
-        alignSelf: 'center',
+        color: "#FFD600",
+    },
+    label: {
+        fontWeight: "500",
+        marginBottom: 10,
+        fontSize: 18,
+        color: "#FFD600"
     },
     input: {
-        backgroundColor: "rgba(222,222,223,0.38)",
-        borderRadius: 200,
+        backgroundColor: "#232634",
+        borderRadius: 8,
         padding: 13,
         paddingHorizontal: 20,
         marginBottom: 12,
-        color: "black",
-        fontSize: 18
+        color: "#fff",
+        fontSize: 18,
+        borderWidth: 0,
     },
+    inputFocused: {
+        borderWidth: 0.5,
+        borderColor: "#FFD600",
+    },
+    registerBtn: {
+        backgroundColor: "#FFD600",
+        borderRadius: 8,
+        padding: 13,
+        alignItems: 'center',
+        marginTop: 10,
+    },
+    registerBtnText: {
+        color: "#232634",
+        fontSize: 18,
+        fontWeight: "bold"
+    },
+    dividerContainer: {
+        alignItems: 'center',
+        width: "100%",
+        position: "relative",
+        marginVertical: 30
+    },
+    dividerLine: {
+        position: "absolute",
+        backgroundColor: "#232634",
+        height: 1,
+        width: "100%",
+        top: 10
+    },
+    dividerText: {
+        backgroundColor: "#181A20",
+        color: "#FFD600",
+        paddingHorizontal: 5,
+        zIndex: 1
+    },
+    socialRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        width: "100%",
+        justifyContent: "space-around"
+    },
+    socialBtn: {
+        borderWidth: 1,
+        borderColor: "#FFD600",
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        width: 140,
+        backgroundColor: "#232634",
+        borderRadius: 8,
+        padding: 10,
+    },
+    socialBtnText: {
+        color: "#FFD600",
+        fontSize: 16,
+        fontWeight: "bold"
+    }
 });
