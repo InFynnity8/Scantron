@@ -172,7 +172,7 @@ export default function Scan() {
     } as any);
     formData.append('answer_key', JSON.stringify(selectedAnswers));
     try {
-      const res = await fetch('http://172.20.10.4:5000/scan', {
+      const res = await fetch('https://bubble-sheet-marker-backend.onrender.com/scan', {
         method: 'POST',
         body: formData,
       });

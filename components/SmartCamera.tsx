@@ -170,6 +170,101 @@ const LiveCameraView = forwardRef<any, LiveCameraViewProps>((props, ref) => {
       }
     }
 
+    document.addEventListener('message', function (e) {
+      if (!cvReady) {
+        log("❌ OpenCV not ready yet");
+        return;
+      }
+
+      log("📷 Frame received");
+
+      let base64 = e.data;
+      let img = new Image();
+      img.onload = () => {
+        log("🖼 Image loaded");
+
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = img.width;
+        tempCanvas.height = img.height;
+        const tempCtx = tempCanvas.getContext('2d');
+        tempCtx.drawImage(img, 0, 0);
+
+        let imageData = tempCtx.getImageData(0, 0, img.width, img.height);
+        let src = cv.matFromImageData(imageData);
+
+        const ratio = src.rows / 500.0;
+        const resized = new cv.Mat();
+        const dsize = new cv.Size(Math.floor(src.cols / ratio), 500);
+        cv.resize(src, resized, dsize, 0, 0, cv.INTER_AREA);
+
+        let rgb = new cv.Mat();
+        let gray = new cv.Mat();
+        let blurred = new cv.Mat();
+        let edged = new cv.Mat();
+
+        cv.cvtColor(resized, rgb, cv.COLOR_RGBA2RGB);
+        cv.cvtColor(rgb, gray, cv.COLOR_RGB2GRAY);
+        cv.GaussianBlur(gray, blurred, new cv.Size(7, 7), 0);
+        cv.Canny(blurred, edged, 50, 200);
+
+        const contours = new cv.MatVector();
+        const hierarchy = new cv.Mat();
+        cv.findContours(edged, contours, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
+
+        drawLiveContours(contours);
+
+        const screenCnt = findDocumentContour(contours);
+
+        if (screenCnt) {
+          const points = [];
+          for (let i = 0; i < 4; i++) {
+            const p = screenCnt.intPtr(i, 0);
+            points.push({ x: p[0] * ratio, y: p[1] * ratio });
+          }
+
+          log("✅ Sending detected corners");
+          window.ReactNativeWebView?.postMessage(JSON.stringify(points));
+
+          const ordered = orderPoints(points);
+          const srcTri = cv.matFromArray(4, 1, cv.CV_32FC2, [].concat(...ordered.map(p => [p.x, p.y])));
+          const maxWidth = 2480;
+          const maxHeight = 3508;
+          const dstTri = cv.matFromArray(4, 1, cv.CV_32FC2, [
+            0, 0,
+            maxWidth, 0,
+            maxWidth, maxHeight,
+            0, maxHeight
+          ]);
+
+          const M = cv.getPerspectiveTransform(srcTri, dstTri);
+          const warped = new cv.Mat();
+          cv.warpPerspective(src, warped, M, new cv.Size(maxWidth, maxHeight));
+
+          const canvas2 = document.createElement('canvas');
+          canvas2.width = maxWidth;
+          canvas2.height = maxHeight;
+          const ctx2 = canvas2.getContext('2d');
+          const imageData = new ImageData(new Uint8ClampedArray(warped.data), warped.cols, warped.rows);
+          ctx2.putImageData(imageData, 0, 0);
+
+          const base64Scan = canvas2.toDataURL('image/jpeg', 1);
+          log("📸 Scanned image ready");
+          window.ReactNativeWebView?.postMessage(JSON.stringify({ scan: base64Scan }));
+
+          rgb.delete(); gray.delete(); blurred.delete(); edged.delete();
+          contours.delete(); hierarchy.delete();
+          screenCnt.delete(); warped.delete(); srcTri.delete(); dstTri.delete(); M.delete();
+        } else {
+          log("❌ No document contour found");
+        }
+
+        src.delete(); resized.delete();
+      };
+
+      img.onerror = () => log("❌ Error loading image");
+      img.src = 'data:image/jpeg;base64,' + base64;
+    });
+    
     window.addEventListener('message', function (e) {
       if (!cvReady) {
         log("❌ OpenCV not ready yet");
@@ -360,6 +455,7 @@ const LiveCameraView = forwardRef<any, LiveCameraViewProps>((props, ref) => {
       <WebView
         ref={webviewRef}
         originWhitelist={['*']}
+        mixedContentMode="always"
         source={{ html: edgeDetectorHTML }}
         javaScriptEnabled
         style={{
