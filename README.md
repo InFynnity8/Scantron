@@ -7,8 +7,6 @@ An intelligent mobile app built with **React Native (Expo)** that scans and grad
 - 📘 Course code  
 - 📄 Downloadable Excel report per student  
 
-No internet required — grading is processed **locally using OpenCV.js in a WebView**.  
-
 ## 🔍 App Preview
 
 ![Scantron App Screenshot](./assets/screenshot.png)
