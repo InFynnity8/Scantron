@@ -1,4 +1,5 @@
 import { AntDesign } from '@expo/vector-icons';
+import axios from 'axios';
 import { Link, router } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import React, { useState } from 'react';
@@ -17,8 +18,27 @@ export default function LoginForm() {
             Alert.alert('Validation Error', 'Please fill in all fields');
             return;
         }
-        await SecureStore.setItemAsync("token", "Myown");
-        router.replace("/");
+
+        try {
+            const res = await axios.post("https://scantron-backend.onrender.com/api/login", {
+                email,
+                password,
+            });
+
+            console.log(res.data.token); // store token in AsyncStorage/SecureStore
+            await SecureStore.setItemAsync("token", res.data.token);
+            Alert.alert("Success", "Logged in successfully!");
+            router.replace("/");
+        } catch (error) {
+            // eslint-disable-next-line import/no-named-as-default-member
+            if (axios.isAxiosError(error)) {
+                Alert.alert("Error", error.response?.data?.message || "Login failed");
+            } else {
+                Alert.alert("Error", "Login failed");
+            }
+        }
+
+
     };
 
     return (

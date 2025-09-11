@@ -2,6 +2,7 @@ import { AntDesign } from '@expo/vector-icons';
 import { Link, router } from 'expo-router';
 import React, { useState } from 'react';
 import { Alert, Keyboard, StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import axios from 'axios';
 
 export default function RegisterForm() {
     const [email, setEmail] = useState('');
@@ -20,8 +21,19 @@ export default function RegisterForm() {
             Alert.alert('Validation Error', 'Passwords do not match');
             return;
         }
-        // Simulate registration
-        router.replace("/login");
+        
+        try {
+            console.log("Registering user:",  email, password );
+            const res = await axios.post('https://scantron-backend.onrender.com/api/create-user', { email, password});
+            console.log(res.data);
+            Alert.alert('Success', 'Registration successful! Please log in.');
+            router.replace("/login");
+        } catch (error) {
+            console.log(error);
+            Alert.alert('Error', 'Registration failed. Please try again.');
+            return;
+        }
+        
     };
 
     return (

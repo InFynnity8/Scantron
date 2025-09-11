@@ -512,9 +512,9 @@ const LiveCameraView = forwardRef<any, LiveCameraViewProps>((props, ref) => {
                   setModalVisible(false);
                   setIsCameraVisible?.(false); // <-- hide camera after confirming
                 }}
-                style={[styles.closeButton, { backgroundColor: 'green', marginTop: 10 }]}
+                style={[styles.closeButton, { backgroundColor: 'transparent', marginTop: 10, borderWidth: 1, borderColor: '#FFD600' }]}
               >
-                <Text style={styles.closeText}>Use This Image</Text>
+                <Text style={{fontWeight: 'bold', color: "#FFD600"}}>Use This Image</Text>
               </TouchableOpacity>
             </View>
           </View>
