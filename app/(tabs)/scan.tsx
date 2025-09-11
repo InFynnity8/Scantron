@@ -134,8 +134,8 @@ export default function Scan() {
       }
       const choicesArray = handleChoices(Object.values(result.choices));
       setFormattedChoices(choicesArray);
-      
-    console.log("boys:", formattedChoices, choicesArray);
+
+      console.log("boys:", formattedChoices, choicesArray);
     }
   }, [result?.choices]);
 
@@ -181,6 +181,7 @@ export default function Scan() {
       setUploadError(false);
       toast.show("Marked Successfully!", { type: "success" });
     } catch (err) {
+      console.log(err);
       setUploadError(true);
       toast.show("Something went wrong. Please position the camera and retake", { type: "danger" });
     } finally {
@@ -278,7 +279,7 @@ export default function Scan() {
                   </View>
                 </View>
               </Modal>
-              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", width: "100%", marginBottom: 8 , paddingHorizontal: 16 }}>
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", width: "100%", marginBottom: 8, paddingHorizontal: 16 }}>
                 <Pressable
                   style={{
                     backgroundColor: loading ? 'gray' : '#FFD600',
