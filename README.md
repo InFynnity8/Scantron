@@ -22,6 +22,10 @@ Scantron explores an alternative approach: using a smartphone as the image-acqui
 
 The system follows a pipeline in which:
 
+
+<img width="8286" height="8857" alt="overall-achitecture" src="https://github.com/user-attachments/assets/eebb4747-7bb6-4b02-9da5-acee760c0e19" />
+
+
 ```text
 Student Answer Sheet
         │
