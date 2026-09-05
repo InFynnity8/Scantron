@@ -33,49 +33,6 @@ The system follows a pipeline in which:
 <img width="8286" height="8857" alt="overall-achitecture" src="https://github.com/user-attachments/assets/eebb4747-7bb6-4b02-9da5-acee760c0e19" />
 
 
-```text
-Student Answer Sheet
-        │
-        ▼
-Smartphone Camera
-        │
-        ▼
-Image Capture
-        │
-        ▼
-Image Preprocessing
-        │
-        ▼
-Thresholding
-        │
-        ▼
-Contour Detection
-        │
-        ▼
-Answer / ID Region Extraction
-        │
-        ▼
-Bubble Detection
-        │
-        ▼
-Answer Interpretation
-        │
-        ▼
-Comparison with Answer Key
-        │
-        ▼
-Score Calculation
-        │
-        ▼
-Structured Results
-        │
-        ├──────────────► Annotated Images
-        │
-        ├──────────────► JSON Response
-        │
-        └──────────────► Excel Report
-```
-
 ---
 
 # Key Features
@@ -517,6 +474,17 @@ The prototype was evaluated during development rather than through a large-scale
 Camera characteristics differ between smartphones and may influence image-processing performance.
 
 ---
+
+
+# Digital Poster
+
+
+<img width="2550" height="3300" alt="Emmanuel Fynn-Sackey(3392022)-2_page-0001" src="https://github.com/user-attachments/assets/c30fa6ab-ff3a-4344-8d5c-0f941ae29642" />
+
+
+
+
+
 
 # Future Research and Development
 
