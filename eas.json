@@ -6,15 +6,23 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_OMR_API_URL": "https://scantron-omr.onrender.com",
+        "EXPO_PUBLIC_AUTH_API_URL": "https://scantron-backend.onrender.com"
+      }
     },
     "preview": {
       "distribution": "internal",
       "android": {
         "buildType": "apk"
       },
-       "ios": {
+      "ios": {
         "simulator": false
+      },
+      "env": {
+        "EXPO_PUBLIC_OMR_API_URL": "https://scantron-omr.onrender.com",
+        "EXPO_PUBLIC_AUTH_API_URL": "https://scantron-backend.onrender.com"
       }
     },
     "production": {
@@ -22,7 +30,11 @@
       "android": {
         "buildType": "apk"
       },
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_OMR_API_URL": "https://scantron-omr.onrender.com",
+        "EXPO_PUBLIC_AUTH_API_URL": "https://scantron-backend.onrender.com"
+      }
     }
   },
   "submit": {

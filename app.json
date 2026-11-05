@@ -1,29 +1,33 @@
 {
   "expo": {
-    "name": "scantron",
+    "name": "Scantron",
     "slug": "scantron",
-    "version": "1.0.0",
+    "version": "2.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/scantron.png",
     "scheme": "scantron",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.infynnity.scantron",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "Scantron uses the camera to read and grade answer sheets.",
+        "NSPhotoLibraryUsageDescription": "Choose a photo of an answer sheet to grade."
       }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/scantron.png",
-        "backgroundColor": "#232634"
+        "backgroundColor": "#0E1015"
       },
       "edgeToEdgeEnabled": true,
       "package": "com.anonymous.scan",
       "permissions": [
-        "android.permission.CAMERA",
+        "android.permission.CAMERA"
+      ],
+      "blockedPermissions": [
         "android.permission.RECORD_AUDIO"
       ]
     },
@@ -36,9 +40,9 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera",
-          "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone",
-          "recordAudioAndroid": true
+          "cameraPermission": "Scantron uses the camera to read and grade answer sheets.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false
         }
       ],
       "expo-router",
@@ -48,12 +52,19 @@
           "image": "./assets/images/scantron.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#232634"
+          "backgroundColor": "#0E1015"
         }
       ],
       "expo-asset",
       "expo-secure-store",
-      "expo-web-browser"
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Choose a photo of an answer sheet to grade.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
@@ -64,6 +75,7 @@
         "projectId": "f5b38d20-09c4-4b90-9f90-77f73ac6d856"
       }
     },
-    "owner": "fynb"
+    "owner": "fynb",
+    "backgroundColor": "#0E1015"
   }
 }

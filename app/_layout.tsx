@@ -1,55 +1,53 @@
-import "./globals.css";
-import { ToastProvider } from 'react-native-toast-notifications';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { Stack, router } from 'expo-router';
-import * as SecureStore from 'expo-secure-store';
+import { Stack } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
+import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-import { View, ActivityIndicator } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-export default function RootLayout() {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
-  // const navigationState = useRootNavigationState();
+import { ToastProvider } from '@/components/ui';
+import { AuthProvider, useAuth } from '@/lib/auth';
+import { loadSettings } from '@/lib/settings';
+import { loadStore } from '@/lib/store';
+import { colors } from '@/lib/theme';
 
-  // Check if token exists
+void SplashScreen.preventAutoHideAsync();
+
+function Root() {
+  const { ready: authReady } = useAuth();
+  const [dataReady, setDataReady] = useState(false);
+
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const token = await SecureStore.getItemAsync('token');
-        setIsAuthenticated(!!token);
-      } catch (error) {
-        console.error("Auth check failed", error);
-        setIsAuthenticated(false);
-      }
-    };
-
-    checkAuth();
+    Promise.all([loadSettings(), loadStore()])
+      .catch((e) => console.warn('startup', e))
+      .finally(() => setDataReady(true));
   }, []);
 
-  // Redirect to login if unauthenticated
+  const ready = authReady && dataReady;
   useEffect(() => {
-    if (isAuthenticated === false ) {
-      router.replace('/login');
-    }
-  }, [isAuthenticated]);
-
-  // Wait for auth + navigationState to resolve
-  if (isAuthenticated === null ) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" />
-      </View>
-    );
-  }
+    if (ready) void SplashScreen.hideAsync();
+  }, [ready]);
+  if (!ready) return null;
 
   return (
-    
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <ToastProvider placement="top" duration={4000} animationType="slide-in">
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-        </Stack>
-      </ToastProvider>
+    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg }, animation: 'slide_from_right' }}>
+      <Stack.Screen name="(app)" />
+      <Stack.Screen name="(auth)" options={{ animation: 'fade' }} />
+    </Stack>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.bg }}>
+      <SafeAreaProvider>
+        <AuthProvider>
+          <ToastProvider>
+            <StatusBar style="light" />
+            <Root />
+          </ToastProvider>
+        </AuthProvider>
+      </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 }

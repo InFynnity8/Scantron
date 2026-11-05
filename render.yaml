@@ -1,0 +1,18 @@
+# Render Blueprint for the OMR grading API (https://render.com/docs/blueprint-spec)
+services:
+  - type: web
+    name: scantron-omr
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: WEB_CONCURRENCY
+        value: "1"
+      - key: SCANTRON_CV_THREADS
+        value: "2"
+      # Optional: set to the auth service's JWT_SECRET to require signed-in users.
+      - key: SCANTRON_JWT_SECRET
+        sync: false
