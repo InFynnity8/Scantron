@@ -8,7 +8,8 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ToastProvider } from '@/components/ui';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { loadSettings } from '@/lib/settings';
-import { loadStore } from '@/lib/store';
+import { getExams, loadStore } from '@/lib/store';
+import { downloadTemplate, isBuiltin, isCached, loadTemplateCache } from '@/lib/templateCache';
 import { colors } from '@/lib/theme';
 
 void SplashScreen.preventAutoHideAsync();
@@ -18,9 +19,16 @@ function Root() {
   const [dataReady, setDataReady] = useState(false);
 
   useEffect(() => {
-    Promise.all([loadSettings(), loadStore()])
+    Promise.all([loadSettings(), loadStore(), loadTemplateCache()])
       .catch((e) => console.warn('startup', e))
-      .finally(() => setDataReady(true));
+      .finally(() => {
+        setDataReady(true);
+        // Make sure every exam's sheet type is available offline (best effort).
+        const ids = new Set(getExams().map((e) => e.templateId));
+        ids.forEach((id) => {
+          if (id !== 'auto' && !isBuiltin(id) && !isCached(id)) downloadTemplate(id).catch(() => undefined);
+        });
+      });
   }, []);
 
   const ready = authReady && dataReady;

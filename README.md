@@ -19,7 +19,7 @@ https://github.com/user-attachments/assets/8ef3b510-b5ad-4006-b09d-d317b916a328
 |---|---|
 | 🎯 **Accurate** | 100% of answers and index numbers read correctly on 3,150 benchmark questions (60 photos with random rotation, perspective, shadows, blur, pencil/pen/faint marks) |
 | ⚡ **Live and offline** | Printed Scantron sheets are graded **on the phone**: marks and score are drawn over the camera view, and the photo is captured automatically once the reading is stable. No internet, no upload |
-| 🏫 **Institution sheets (KNUST)** | Calibrate any existing answer sheet from one blank scan. Scans are aligned by feature matching, so no special markers are needed |
+| 🏫 **Institution sheets (KNUST)** | Calibrate any existing answer sheet from one blank scan, plus an optional mask. After a one-time download, these sheets are graded **on the phone, offline and live** too. No special markers needed; red drop-out print is removed automatically |
 | 🆔 **Codes, not just answers** | Index numbers, course codes and other bubbled fields are read with a confidence for each character. Handwritten areas are cropped for review |
 | 🧐 **Human in the loop** | Every answer has a confidence score. Blanks, multiple marks, erasures and unclear marks are flagged, and you can correct them with one tap |
 | 📊 **Reports** | Excel export with **Results**, **Answer Key**, **Item Analysis** (difficulty and discrimination) and **Summary** sheets |
@@ -138,7 +138,12 @@ Open **Printable sheets** in the app, or
 
 ## Using KNUST / institutional sheets
 
-Run calibration once per sheet design, from one blank scan. The full guide is
+The **KNUST IDL answer sheet** (`knust-idl-200`) is built in. It reads 200
+questions, the candidate number, the course code (for example `BIT466`), the
+department code, the academic year, the year of student and the semester. Pick
+*KNUST IDL answer sheet (200)* when you create an exam.
+
+For other sheet designs, run calibration once per sheet design, from one blank scan. The full guide is
 in [backend/templates/README.md](backend/templates/README.md).
 
 ```bash
@@ -146,9 +151,12 @@ python -m scantron_omr.calibrate blank_knust.jpg --out templates/knust-60 \
     --id knust-60 --name "KNUST answer sheet (60)" --field index_number:digits:7
 ```
 
-Commit the generated folder and redeploy. The sheet then appears in the app.
-These sheets are graded on the server, because the SIFT registration they rely
-on has no practical on-device JavaScript equivalent.
+Commit the generated folder and redeploy. The sheet then appears in the app,
+which downloads its template and blank reference once. From then on it is
+graded on the phone with no internet. The phone finds the paper edges, then
+locks onto the printed blocks by correlating them with the reference and
+refits the perspective from all of them. The server still uses SIFT
+registration, and both are verified against the reference before reading.
 
 ---
 
@@ -188,8 +196,12 @@ The `POST /v1/scan` response, abridged:
 | Server engine, 60 random synthetic phone photos (rotation 0–360°, perspective, shadows, blur, JPEG 60–95, pencil/pen/faint) | **100% of 3,150 answers, 100% of index numbers**, median 262–318 ms |
 | On-device engine, same conditions at 760 px live-frame resolution | **100% of 1,720 answers, 100% of index numbers**, ~50 ms grading (Node) |
 | Feature-registered "institutional" sheet (no markers), calibrated from one blank photo | 6/6 sheets exact, including 90° and 180° rotation |
-| Real photos (`assets/images/test_0*.png`), template-free auto mode | 5/5 sheets exact; scores match the published reference (80/20/60/20/100 %) |
-| Previous v1 backend on `test_01.png` | 1/5 correct, phantom 6th question, ID `0` |
+| Simulated KNUST-style sheet (200 Q, `<A>` options, pink drop-out ink), server | 5/5 sheets exact, including 90° and 180° rotation |
+| Same, **on-device** (paper edges + reference block registration) | 10/10 sheets, 2,000/2,000 answers, 100% candidate numbers |
+| **Real KNUST IDL sheet**: 3 phone photos (upright, tilted, landscape) and 1 low-res scan of one filled sheet, server and phone | candidate number, year and semester correct on all 4; answers identical on all 4 except Q120 (a mark offset left of its cell), which is read or flagged for review; course code `BIT466`, with one faint digit flagged `?` |
+| Real KNUST IDL template, synthetic filled copies (dark and wood desks, shadows, 180°), server 4/4 and phone 10/10 | every answer and every header field exact |
+| Mask-based calibration of the KNUST-style sheet | every option recovered within 1.5 px; graded sheets exact at 0° and 180° |
+| Previous v1 backend on a simple 5-question sheet | 1/5 correct, phantom 6th question, ID `0` |
 
 > Synthetic benchmarks are no substitute for a field study. The next step is a
 > labelled set of real KNUST sheets across phones and lighting; the
@@ -202,8 +214,9 @@ The `POST /v1/scan` response, abridged:
 - **Live-frame rate:** the overlay updates about 1–2× per second using Expo's
   camera. A 30 fps overlay needs `react-native-vision-camera` frame processors;
   the engine is pure TypeScript and was written so it can move there.
-- **KNUST sheets need internet,** because of server-side feature registration.
-  Printing KNUST-style sheets with corner markers would make them fully offline.
+- **KNUST on-device registration** works best with the whole sheet in frame on
+  a surface darker than the paper. Wooden desks and uneven light are handled;
+  a flat scan with no background also works.
 - **Handwriting** (names, written index numbers) is cropped for human review,
   not recognised.
 - Planned next: LMS/CSV import of class lists, multi-page exams, cloud sync of results.

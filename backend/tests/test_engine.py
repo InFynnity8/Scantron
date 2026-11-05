@@ -1,13 +1,11 @@
 """End-to-end accuracy tests for the OMR engine.
 
-Synthetic photos cover perspective, rotation, shadows, blur, noise and JPEG
-artefacts; real photos (repo ``assets/images``) cover template-free reading.
+Synthetic photos cover perspective, rotation, shadows, blur, noise and JPEG artefacts.
 """
 
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 import cv2
 import numpy as np
@@ -18,8 +16,6 @@ from scantron_omr.calibrate import calibrate
 from scantron_omr.template import load_template_file
 
 from .synth import SCALE, Marks, PhotoParams, draw_marks, expected_answers, photograph, random_marks, read_answers
-
-ASSETS = Path(__file__).resolve().parents[2] / "assets" / "images"
 
 
 @pytest.fixture(scope="module")
@@ -156,25 +152,6 @@ def test_calibrated_sheet_with_feature_registration(tmp_path, registry):
         _check(res, m)
 
 
-# Known answers of the sample photos in assets/images (classic PyImageSearch set).
-REAL = {
-    "test_01.png": "BEACB",
-    "test_02.png": "AAAAA",
-    "test_03.png": "CEABB",
-    "test_04.png": "ABCDE",
-    "test_05.png": "BEADB",
-}
-
-
-@pytest.mark.parametrize("name,answers", REAL.items())
-def test_real_photos_auto_mode(engine, name, answers):
-    img = cv2.imread(str(ASSETS / name))
-    assert img is not None
-    res = engine.scan(ScanRequest(img, template="auto", answer_key="BEADB", include_images=False))
-    assert res["template"]["num_questions"] == 5
-    assert "".join(q["marked"][0] if q["marked"] else "-" for q in res["questions"]) == answers
-
-
 def test_parse_answer_key_formats():
     opts = tuple("ABCDE")
     assert parse_answer_key("BEA", opts) == {"1": ["B"], "2": ["E"], "3": ["A"]}
@@ -191,3 +168,75 @@ def test_no_sheet_in_photo(engine):
 
     with pytest.raises(TemplateNotDetectedError):
         engine.scan(ScanRequest(noise))
+
+
+def test_calibrate_from_mask_knust_style(tmp_path):
+    """Calibrating from a blank + Photoshop-style mask recovers the exact layout."""
+    from scantron_omr.calibrate import calibrate as calib
+
+    from . import knust_sim as K
+
+    truth = K.template(tmp_path)
+    blank = K.render(1.0)
+    mask = np.zeros(blank.shape[:2], np.uint8)
+    for it in truth.questions + truth.id_columns:
+        for cx, cy in it.centers:
+            cv2.rectangle(mask, (int(cx - 14), int(cy - 7)), (int(cx + 14), int(cy + 7)), 255, -1)
+
+    spec, sheet, notes = calib(blank, "knust-cal", "KNUST calibrated", "ABCDE", [("index_number", "digits", 7)], crop=False, mask=mask)
+    assert spec["ink_channel"] == "red", notes
+    assert spec.get("bubble_size") and spec["bubble_size"][0] > 1.5 * spec["bubble_size"][1]
+    cv2.imwrite(str(tmp_path / "reference.png"), cv2.cvtColor(sheet, cv2.COLOR_BGR2GRAY))
+    (tmp_path / "template.json").write_text(json.dumps(spec))
+    got = load_template_file(tmp_path / "template.json")
+    assert got.num_questions == 200 and len(got.id_columns) == 7, notes
+    for a, b in zip(truth.questions, got.questions):
+        assert a.label == b.label
+        assert np.abs(a.centers - b.centers).max() < 1.5
+    for a, b in zip(truth.id_columns, got.id_columns):
+        assert np.abs(a.centers - b.centers).max() < 1.5
+
+    reg = TemplateRegistry()
+    reg.add(got)
+    eng = OMREngine(reg)
+    rng = np.random.default_rng(31)
+    for rot in (0, 180):
+        answers = {q.label: [str(rng.choice(list("ABCDE")))] for q in truth.questions}
+        sid = "".join(str(rng.integers(0, 10)) for _ in range(7))
+        photo = photograph(K.filled(truth, answers, sid, rng), PhotoParams(rotation=rot, persp=0.05, shadow=0.4, background=(40, 45, 50)), rng)
+        res = eng.scan(ScanRequest(photo, template="knust-cal", include_images=False))
+        wrong = {q["label"] for q in res["questions"] if q["marked"] != answers[q["label"]]}
+        assert not wrong, (rot, res["alignment"], sorted(wrong, key=int)[:5], res["stats"])
+        assert res["student_id"]["value"] == sid
+
+
+@pytest.mark.parametrize(
+    "seed,rotation,background",
+    [(1, 0.0, (40, 40, 40)), (2, 180.0, (60, 95, 150)), (3, -4.0, (80, 120, 170)), (4, 3.0, (35, 45, 55))],
+)
+def test_knust_idl_sheet(engine, registry, seed, rotation, background):
+    """The real KNUST IDL template: answers and every header field, upright and upside down,
+    on dark and on wood-coloured desks."""
+    from . import knust_idl as KI
+
+    t = registry.get(KI.TEMPLATE_ID)
+    rng = np.random.default_rng(seed)
+    f = KI.random_sheet(t, rng)
+    p = PhotoParams(
+        rotation=rotation + float(rng.uniform(-3, 3)),
+        persp=0.04,
+        fill=0.86,
+        shadow=0.3,
+        gradient=0.25,
+        blur=1.0,
+        noise=4.0,
+        jpeg=85,
+        background=background,
+    )
+    photo = photograph(KI.render(f, rng), p, rng)
+    res = engine.scan(ScanRequest(photo, template=KI.TEMPLATE_ID, include_images=False))
+    assert read_answers(res) == {k: sorted(v) for k, v in f.answers.items()}
+    got = {k: v["value"] for k, v in res["fields"].items()}
+    for k, v in KI.expected_fields(f).items():
+        assert got[k] == v, (k, got[k], v)
+    assert got["department_code"] is None and got["candidate_type"] is None

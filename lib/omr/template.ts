@@ -1,10 +1,11 @@
-import type { BlockSpec, CompiledTemplate, FieldDef, Item, Pt, TemplateSpec } from './types';
+import type { Block, BlockSpec, CompiledTemplate, FieldDef, Item, Pt, TemplateSpec } from './types';
 
 const DIGITS = '0123456789';
 const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 export const INDEX_FIELD = 'index_number';
 
-function alphabet(v: string | undefined, fallback: string): string[] {
+function alphabet(v: string | string[] | undefined, fallback: string): string[] {
+  if (Array.isArray(v)) return v.map(String);
   const named: Record<string, string> = { digits: DIGITS, letters: LETTERS, alnum: LETTERS + DIGITS };
   return (v === undefined ? fallback : named[v] ?? v).split('');
 }
@@ -13,8 +14,11 @@ function alphabet(v: string | undefined, fallback: string): string[] {
 export function compileTemplate(spec: TemplateSpec): CompiledTemplate {
   const questions: Item[] = [];
   const fields = new Map<string, FieldDef>();
+  const blocks: Block[] = [];
+  const rx = spec.bubble_size ? spec.bubble_size[0] / 2 : spec.bubble_radius;
+  const ry = spec.bubble_size ? spec.bubble_size[1] / 2 : spec.bubble_radius;
 
-  spec.blocks.forEach((b: BlockSpec) => {
+  spec.blocks.forEach((b: BlockSpec, blockIdx: number) => {
     let kind: 'mcq' | 'field';
     let fname: string | null = null;
     let flabel = '';
@@ -36,23 +40,30 @@ export function compileTemplate(spec: TemplateSpec): CompiledTemplate {
     const axis = b.options_axis ?? (kind === 'mcq' ? 'x' : 'y');
     const [ox, oy] = b.origin;
     if (fname && !fields.has(fname)) {
-      fields.set(fname, { name: fname, label: flabel, columns: [], allowTrailingBlank: b.allow_trailing_blank ?? true });
+      fields.set(fname, { name: fname, label: flabel, columns: [], allowTrailingBlank: b.allow_trailing_blank ?? true, optional: [] });
     }
+    const all: Pt[] = [];
     for (let i = 0; i < b.count; i++) {
       const centers: Pt[] = options.map((_, j) =>
         axis === 'x'
           ? { x: ox + j * b.option_gap, y: oy + i * b.item_gap }
           : { x: ox + i * b.item_gap, y: oy + j * b.option_gap },
       );
+      all.push(...centers);
       if (kind === 'mcq') {
         const n = (b.first ?? 1) + i;
-        questions.push({ key: `q${n}`, label: String(n), options, centers });
+        questions.push({ key: `q${n}`, label: String(n), block: blockIdx, options, centers });
       } else {
         const f = fields.get(fname!)!;
         const pos = f.columns.length;
-        f.columns.push({ key: `${fname}:${pos}`, label: String(pos + 1), options, centers });
+        f.columns.push({ key: `${fname}:${pos}`, label: String(pos + 1), block: blockIdx, options, centers });
+        f.optional.push(b.allow_blank ?? false);
       }
     }
+    const xs = all.map((p) => p.x);
+    const ys = all.map((p) => p.y);
+    const bbox: [number, number, number, number] = [Math.min(...xs) - rx, Math.min(...ys) - ry, Math.max(...xs) + rx, Math.max(...ys) + ry];
+    blocks.push({ bbox, center: { x: (bbox[0] + bbox[2]) / 2, y: (bbox[1] + bbox[3]) / 2 } });
   });
   questions.sort((a, b) => Number(a.label) - Number(b.label));
 
@@ -74,6 +85,11 @@ export function compileTemplate(spec: TemplateSpec): CompiledTemplate {
     width: spec.page.width,
     height: spec.page.height,
     radius: spec.bubble_radius,
+    rx,
+    ry,
+    inkChannel: spec.ink_channel ?? 'gray',
+    alignment: spec.alignment.type,
+    blocks,
     questions,
     fields: [...fields.values()],
     markers,

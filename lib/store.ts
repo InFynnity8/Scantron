@@ -97,6 +97,9 @@ export async function deleteSheet(examId: string, sheetId: string): Promise<void
   }
 }
 
+export function getExams(): Exam[] {
+  return state.exams;
+}
 export function getExam(id: string): Exam | undefined {
   return state.exams.find((e) => e.id === id);
 }

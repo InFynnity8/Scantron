@@ -123,6 +123,20 @@ def printable_sheet(
     )
 
 
+@app.get("/v1/templates/{template_id}/reference.jpg")
+def template_reference(template_id: str) -> Response:
+    """Blank-sheet reference (grayscale JPEG, template resolution) so phones can
+    register marker-free sheets such as KNUST offline."""
+    t = _template(template_id)
+    ref = t.alignment.reference
+    if ref is None:
+        raise ApiError(404, "no_reference", "This template has no reference image.")
+    ok, buf = cv2.imencode(".jpg", ref, [cv2.IMWRITE_JPEG_QUALITY, 90])
+    if not ok:
+        raise ApiError(500, "encode_failed", "Could not encode the reference image.")
+    return Response(buf.tobytes(), media_type="image/jpeg", headers={"Cache-Control": "public, max-age=86400"})
+
+
 def _json_field(raw: str | None, name: str) -> Any:
     if raw is None or raw.strip() == "":
         return None

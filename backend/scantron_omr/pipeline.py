@@ -13,7 +13,7 @@ from . import align as A
 from .annotate import annotate, to_data_url
 from .discover import find_bubbles, find_question_groups
 from .grading import ScoringPolicy, grade, parse_answer_key
-from .imageops import assess_quality, darkness_map, to_gray
+from .imageops import assess_quality, darkness_map, ink_image, to_gray
 from .layouts import TemplateRegistry
 from .reader import ItemReading, compose_code, read_items
 from .template import INDEX_FIELD, Item, Template
@@ -92,21 +92,24 @@ class OMREngine:
         aligned, warnings = self.align(img, t, det)
         t_align = time.perf_counter()
 
-        dark = darkness_map(aligned.gray, t.bubble_radius)
         r = t.bubble_radius
+        # Alignment uses the printed structure (gray); reading uses the ink channel,
+        # where coloured drop-out print vanishes and only pencil/pen remains.
+        dark = darkness_map(aligned.gray, max(t.rx, t.ry))
+        ink = dark if t.ink_channel == "gray" else darkness_map(ink_image(aligned.image, t.ink_channel), max(t.rx, t.ry))
         min_gap = min(min(b.option_gap, b.item_gap) for b in t.blocks)
         max_shift = {"markers": 0.5 * r, "features": 0.9 * r, "page": 1.6 * r, "none": 2.0 * r}[aligned.method]
         max_shift = min(max_shift, 0.42 * min_gap)
-        items, shifts = A.refine_blocks(dark, t, t.questions + t.field_items, max_shift)
+        items, shifts = A.refine_blocks(dark, t, t.questions + t.field_items, max_shift, gray=aligned.gray)
         nq = len(t.questions)
-        readings, stats, _ = read_items(dark, items, r)
+        readings, stats, _ = read_items(ink, items, t.rx, ry=t.ry, n_questions=nq)
         q_read = readings[:nq]
 
         # Split field readings back per field (order preserved).
         fields: dict[str, tuple[str, bool, list[ItemReading]]] = {}
         k = nq
         for f in t.fields.values():
-            fields[f.name] = (f.label, f.allow_trailing_blank, readings[k : k + len(f.columns)])
+            fields[f.name] = (f.label, (f.allow_trailing_blank, f.optional), readings[k : k + len(f.columns)])
             k += len(f.columns)
 
         crops = {}
@@ -117,7 +120,7 @@ class OMREngine:
                 if crop.size:
                     crops[reg.name] = {"label": reg.label, "image": to_data_url(crop, quality=80, max_side=900)}
         return self._finish(
-            req, t.summary(), aligned, q_read, fields, stats, r, warnings, shifts, t0, t_align, crops
+            req, t.summary(), aligned, q_read, fields, stats, t.rx, warnings, shifts, t0, t_align, crops, ry=t.ry
         )
 
     # ------------------------------------------------------------------ #
@@ -166,7 +169,7 @@ class OMREngine:
         return self._finish(req, summary, aligned, readings, {}, stats, r, warnings, {}, t0, t_align, {})
 
     # ------------------------------------------------------------------ #
-    def _finish(self, req, summary, aligned, q_read, fields, stats, r, warnings, shifts, t0, t_align, crops):
+    def _finish(self, req, summary, aligned, q_read, fields, stats, r, warnings, shifts, t0, t_align, crops, ry=None):
         options = tuple(summary["options"])
         key = parse_answer_key(req.answer_key, options) if req.answer_key not in (None, "", [], {}) else {}
         graded = grade(q_read, key, req.policy or ScoringPolicy()) if key else None
@@ -175,7 +178,7 @@ class OMREngine:
         all_field_cols: list[ItemReading] = []
         review_reasons: list[str] = []
         for name, (label, trailing, cols) in fields.items():
-            value, conf, issues = compose_code(cols, trailing)
+            value, conf, issues = compose_code(cols, *trailing)
             field_out[name] = {
                 "label": label,
                 "value": value,
@@ -184,7 +187,8 @@ class OMREngine:
                 "characters": [c.as_dict() for c in cols],
             }
             all_field_cols.extend(cols)
-            if value is None or "?" in value or issues or conf < 0.45:
+            # An empty field is fine (optional, e.g. department code) except the index number.
+            if (value is None and name == INDEX_FIELD) or (value is not None and ("?" in value or issues or conf < 0.45)):
                 review_reasons.append(f"{label} could not be read with confidence")
 
         quality = assess_quality(aligned.gray)
@@ -224,7 +228,7 @@ class OMREngine:
                 parts.append(f"ID {sid['value']}")
             if graded:
                 parts.append(f"Score {graded['score']:g}/{graded['max_score']:g} ({graded['percentage']}%)")
-            ann = annotate(aligned.image, q_read, all_field_cols, graded, r, "   |   ".join(parts) or None)
+            ann = annotate(aligned.image, q_read, all_field_cols, graded, r, "   |   ".join(parts) or None, ry=ry)
             out["images"] = {"annotated": to_data_url(ann), "regions": crops}
         t_end = time.perf_counter()
         out["timing_ms"] = {"align": round((t_align - t0) * 1000), "total": round((t_end - t0) * 1000)}

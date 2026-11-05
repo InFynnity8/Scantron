@@ -68,6 +68,9 @@ class FieldDef:
     label: str  # display, e.g. "Index number"
     columns: list[Item]
     allow_trailing_blank: bool = True  # shorter codes leave the last columns empty
+    # per column: True if the column may be left empty anywhere in the code
+    # (block option "allow_blank", e.g. course letters "BIT" + 2 empty + "466")
+    optional: list[bool] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -101,7 +104,18 @@ class Template:
     regions: list[Region] = field(default_factory=list)
     description: str = ""
     printable: bool = False
+    # Half-width / half-height of an option cell (elongated "[A]" style options).
+    rx: float = 0.0
+    ry: float = 0.0
+    # Colour channel used to READ marks. "red" makes red/pink drop-out print vanish.
+    ink_channel: str = "gray"
     raw: dict[str, Any] = field(default_factory=dict, repr=False)
+
+    def __post_init__(self) -> None:
+        if not self.rx:
+            self.rx = self.bubble_radius
+        if not self.ry:
+            self.ry = self.bubble_radius
 
     @property
     def num_questions(self) -> int:
@@ -151,9 +165,12 @@ def _marker_corners(x: float, y: float, size: float) -> np.ndarray:
     return np.float32([[x, y], [x + size, y], [x + size, y + size], [x, y + size]])
 
 
-def _alphabet(v: str | None, default: str) -> tuple[str, ...]:
+def _alphabet(v: str | list[str] | None, default: str) -> tuple[str, ...]:
+    """Option labels: a named set, a string of single characters, or a list of labels ("2024/25")."""
     if v is None:
         return tuple(default)
+    if isinstance(v, list):
+        return tuple(str(x) for x in v)
     named = {"digits": DIGITS, "letters": LETTERS, "alnum": LETTERS + DIGITS}
     return tuple(named.get(v, v))
 
@@ -187,6 +204,11 @@ def template_from_spec(spec: dict[str, Any], base_dir: str | Path | None = None)
     page = spec.get("page", {})
     width, height = int(page["width"]), int(page["height"])
     radius = float(spec.get("bubble_radius", 12))
+    size = spec.get("bubble_size")  # [width, height] of elongated option cells
+    rx, ry = (float(size[0]) / 2, float(size[1]) / 2) if size else (radius, radius)
+    ink_channel = spec.get("ink_channel", "gray")
+    if ink_channel not in ("gray", "red", "green", "blue"):
+        raise ValueError("ink_channel must be gray|red|green|blue")
 
     align_spec = spec.get("alignment", {"type": "page"})
     alignment = Alignment(kind=align_spec.get("type", "page"))
@@ -257,16 +279,17 @@ def template_from_spec(spec: dict[str, Any], base_dir: str | Path | None = None)
 
         allc = np.concatenate([it.centers for it in items_here])
         bbox = (
-            float(allc[:, 0].min() - radius),
-            float(allc[:, 1].min() - radius),
-            float(allc[:, 0].max() + radius),
-            float(allc[:, 1].max() + radius),
+            float(allc[:, 0].min() - rx),
+            float(allc[:, 1].min() - ry),
+            float(allc[:, 0].max() + rx),
+            float(allc[:, 1].max() + ry),
         )
         blocks.append(Block(kind, b.get("name", flabel or f"block{b_idx}"), bbox, og, ig, fname))
         if kind == "mcq":
             questions.extend(items_here)
         else:
             fields[fname].columns.extend(items_here)
+            fields[fname].optional.extend([bool(b.get("allow_blank", False))] * len(items_here))
 
     questions.sort(key=lambda it: int(it.label))
     labels = [q.label for q in questions]
@@ -291,6 +314,9 @@ def template_from_spec(spec: dict[str, Any], base_dir: str | Path | None = None)
         fields=fields,
         regions=regions,
         printable=bool(spec.get("printable", False)),
+        rx=rx,
+        ry=ry,
+        ink_channel=ink_channel,
         raw=spec,
     )
 

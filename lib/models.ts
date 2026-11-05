@@ -28,6 +28,8 @@ export interface SheetField {
   label: string;
   value: string | null;
   confidence: number;
+  /** option read in each column (null = blank/unclear); used to draw the marks */
+  marks?: (string | null)[];
 }
 
 export interface Sheet {
@@ -50,6 +52,7 @@ export interface Sheet {
   annotatedUri?: string;
   regionUris?: Record<string, { label: string; uri: string }>;
   homography?: number[];
+  blockShifts?: Record<string, [number, number]>;
   imageSize?: { width: number; height: number };
 }
 

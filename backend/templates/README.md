@@ -2,7 +2,14 @@
 
 Built-in printable sheets (`std-20` … `std-100`) are generated in code
 (`scantron_omr/layouts.py`). This folder holds templates for **external sheets**
-such as KNUST answer sheets. Every `*.json` here, and every `*/template.json`,
+such as KNUST answer sheets.
+
+Included: **`knust-idl-200`**, the Institute of Distance Learning (IDL-KNUST)
+multiple-choice answer sheet. It has 200 questions (A–E), the candidate number,
+course code (letters and digits), department code, academic year, year of
+student, semester and P/G. Its blank `reference.jpg` was rebuilt from photos of
+a filled sheet: the photos were flattened to the printed grid, then the pencil
+marks and handwriting were erased. Every `*.json` here, and every `*/template.json`,
 is loaded at start-up and listed by `GET /v1/templates`, so it shows up in the
 app's sheet picker.
 
@@ -27,6 +34,14 @@ app's sheet picker.
    - Use `--order row` if questions are numbered across the page instead of
      down each column.
    - Use `--no-crop` if the image is already cropped to the page (a scanner).
+   - **KNUST and other sheets with `<A>`-style options** (not round bubbles):
+     add `--mask mask.png`, an image the same size as the blank in which every
+     option cell (answers and index digits) is painted white on black. A
+     Photoshop mask made over the original sheet works. The cells are taken
+     from the mask exactly.
+   - The ink channel is detected automatically. Red/pink drop-out print, as on
+     KNUST sheets, is read in the red channel, where the print vanishes and
+     only pencil remains. Override it with `--ink gray|red`.
 
    This writes three files:
    - `template.json`: the bubble geometry.
@@ -51,7 +66,9 @@ app's sheet picker.
    ```
 
 5. **Commit the folder and redeploy.** The template then appears in the app
-   under *New exam → Answer sheet*.
+   under *New exam → Answer sheet*. The app downloads it once (spec plus
+   blank reference, about 200 KB). After that, these sheets are graded **on
+   the phone, offline, with live scanning**, just like the printable sheets.
 
 ## Template JSON reference
 
@@ -61,6 +78,8 @@ app's sheet picker.
   "name": "KNUST answer sheet (60)",
   "page": { "width": 1240, "height": 1754 }, // template pixel space
   "bubble_radius": 12.5,
+  "bubble_size": [26, 13],                   // optional: elongated option cells (width, height)
+  "ink_channel": "red",                      // gray | red | green | blue - channel used to read marks
   "alignment": { "type": "features", "reference": "reference.png" },
   //            or { "type": "page" }  -> paper-edge detection only
   //            or { "type": "aruco", "markers": [{ "id": 0, "x": 44, "y": 44, "size": 72 }, ...] }

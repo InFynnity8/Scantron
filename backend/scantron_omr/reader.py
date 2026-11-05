@@ -30,6 +30,8 @@ DEFAULT_DELTA = 0.32  # threshold above baseline when the sheet has no clear jum
 CONF_SCALE = 0.14  # distance from threshold that gives full confidence
 REVIEW_CONFIDENCE = 0.45
 MARK_LEVEL_RATIO = 0.45  # sheet threshold must sit below this fraction of a typical mark
+POSSIBLE_MARK_GAP = 0.09  # blank item whose darkest cell stands out this much is sent for review
+FAINT_DELTA = 0.10  # code columns: a lone, clearly darker cell this far above baseline is a faint mark
 
 Status = Literal["answered", "blank", "multiple"]
 
@@ -62,14 +64,14 @@ class ItemReading:
         }
 
 
-def _disk_offsets(radius: float) -> tuple[np.ndarray, np.ndarray]:
-    r = int(np.ceil(radius))
-    yy, xx = np.mgrid[-r : r + 1, -r : r + 1]
-    m = (xx**2 + yy**2) <= radius**2
+def _ellipse_offsets(rx: float, ry: float) -> tuple[np.ndarray, np.ndarray]:
+    ax, ay = int(np.ceil(rx)), int(np.ceil(ry))
+    yy, xx = np.mgrid[-ay : ay + 1, -ax : ax + 1]
+    m = (xx / max(rx, 0.5)) ** 2 + (yy / max(ry, 0.5)) ** 2 <= 1.0
     return yy[m], xx[m]
 
 
-def measure_fills(dark: np.ndarray, items: list[Item], radius: float) -> list[list[float]]:
+def measure_fills(dark: np.ndarray, items: list[Item], radius: float, ry: float | None = None) -> list[list[float]]:
     """Fill score per bubble, in [0, 1].
 
     Uses the inner disk only (excludes the printed ring) and blends the mean ink
@@ -77,9 +79,9 @@ def measure_fills(dark: np.ndarray, items: list[Item], radius: float) -> list[li
     the disk, so the percentile ignores them, while a real mark covers most of
     it. A light blur first closes the gaps in hatched pencil strokes.
     """
-    inner = radius * 0.7
-    oy, ox = _disk_offsets(inner)
-    sigma = max(0.6, radius * 0.08)
+    rx, ry_ = radius, (ry if ry else radius)
+    oy, ox = _ellipse_offsets(rx * 0.7, ry_ * 0.7)
+    sigma = max(0.6, min(rx, ry_) * 0.08)
     smooth = cv2.GaussianBlur(dark, (0, 0), sigma)
     H, W = dark.shape
     out: list[list[float]] = []
@@ -126,12 +128,40 @@ def sheet_statistics(all_fills: np.ndarray) -> SheetStats:
         if v[i + 1] >= min_upper and g >= MIN_JUMP:
             thr, jump = float((v[i] + v[i + 1]) / 2), g
             break
+    else:
+        # No single clean gap (low-contrast print such as "<A>" cells, light
+        # pencil): split empty/filled by Otsu, if the two classes are distinct.
+        split = _otsu_split(v)
+        if split is not None:
+            thr = split
     return SheetStats(baseline, floor, max(thr, floor), jump)
 
 
-def decide(item: Item, fills: list[float], stats: SheetStats, single_choice: bool = True) -> ItemReading:
+def _otsu_split(v: np.ndarray) -> float | None:
+    """Two-class split of sorted fills maximising between-class variance."""
+    n = len(v)
+    if n < 4:
+        return None
+    c = np.cumsum(v, dtype=np.float64)
+    k = np.arange(1, n)
+    m0 = c[:-1] / k
+    m1 = (c[-1] - c[:-1]) / (n - k)
+    score = k * (n - k) * (m1 - m0) ** 2
+    i = int(np.argmax(score))
+    if m1[i] - m0[i] < MIN_JUMP * 1.5:
+        return None
+    return float((v[i] + v[i + 1]) / 2)
+
+
+def decide(
+    item: Item, fills: list[float], stats: SheetStats, single_choice: bool = True, code_column: bool = False
+) -> ItemReading:
+    """Read one item. ``code_column`` (index number, course code...) also accepts a
+    single faint but clearly darker cell, flagged "faint" so it is reviewed."""
     f = np.asarray(fills, np.float32)
     thr = stats.global_threshold
+    floor = stats.floor
+    faint = False
     if not np.any(f >= thr):
         # No clear mark by sheet standards: look for a faint but deliberate one.
         order = np.sort(f)
@@ -140,7 +170,16 @@ def decide(item: Item, fills: list[float], stats: SheetStats, single_choice: boo
             k = int(np.argmax(gaps))
             if gaps[k] >= MIN_JUMP and order[k + 1] >= stats.floor:
                 thr = float((order[k] + order[k + 1]) / 2)
-    thr = max(thr, stats.floor)
+            elif (
+                code_column
+                and k == len(gaps) - 1
+                and gaps[k] >= MIN_JUMP
+                and order[k + 1] >= stats.baseline + FAINT_DELTA
+            ):
+                thr = float((order[k] + order[k + 1]) / 2)
+                floor = stats.baseline + FAINT_DELTA
+                faint = True
+    thr = max(thr, floor)
 
     marked_idx = [i for i, v in enumerate(f) if v >= thr]
     marked = [item.options[i] for i in marked_idx]
@@ -156,26 +195,43 @@ def decide(item: Item, fills: list[float], stats: SheetStats, single_choice: boo
         flags.append("possible_erasure")
     if status == "multiple" and single_choice:
         flags.append("multiple_marks")
+    if faint and status == "answered":
+        flags.append("faint")
+    if status == "blank" and len(f) > 1:
+        top = np.sort(f)
+        # Read as blank, but one cell stands out: a light or off-centre mark. Review it.
+        if top[-1] - top[-2] >= POSSIBLE_MARK_GAP and top[-1] >= stats.baseline + FAINT_DELTA:
+            flags.append("possible_mark")
 
     return ItemReading(
         item.key, item.label, item.options, [float(x) for x in f], marked, status, confidence, thr, flags, item.centers
     )
 
 
-def read_items(dark: np.ndarray, items: list[Item], radius: float, stats: SheetStats | None = None):
-    fills = measure_fills(dark, items, radius)
+def read_items(
+    dark: np.ndarray,
+    items: list[Item],
+    radius: float,
+    stats: SheetStats | None = None,
+    ry: float | None = None,
+    n_questions: int | None = None,
+):
+    """Read items. Items after the first ``n_questions`` are code columns."""
+    fills = measure_fills(dark, items, radius, ry)
     if stats is None:
         stats = sheet_statistics(np.concatenate([np.asarray(x) for x in fills]) if fills else np.zeros(1))
-    return [decide(it, fv, stats) for it, fv in zip(items, fills)], stats, fills
+    nq = len(items) if n_questions is None else n_questions
+    return [decide(it, fv, stats, code_column=i >= nq) for i, (it, fv) in enumerate(zip(items, fills))], stats, fills
 
 
 def compose_code(
-    columns: list[ItemReading], allow_trailing_blank: bool = True
+    columns: list[ItemReading], allow_trailing_blank: bool = True, optional: list[bool] | None = None
 ) -> tuple[str | None, float, list[str]]:
     """Compose a bubbled code (index number, course code...) from its columns.
 
     Unreadable characters become ``?``. Trailing blank columns are dropped when
-    allowed (shorter codes on a longer grid).
+    allowed (shorter codes on a longer grid). Clean blank columns marked in
+    ``optional`` are skipped wherever they are.
     """
     if not columns:
         return None, 0.0, []
@@ -184,6 +240,8 @@ def compose_code(
         while n > 0 and columns[n - 1].status == "blank" and not columns[n - 1].flags:
             n -= 1
     used = columns[:n]
+    if optional and any(optional):
+        used = [c for i, c in enumerate(used) if not (i < len(optional) and optional[i] and c.status == "blank" and not c.flags)]
     chars, issues = [], []
     for c in used:
         if c.status == "answered":

@@ -35,6 +35,14 @@ def to_gray(img: np.ndarray) -> np.ndarray:
     return img if img.ndim == 2 else cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
 
+def ink_image(img: np.ndarray, channel: str) -> np.ndarray:
+    """Channel used to read marks. Coloured drop-out print (e.g. red/pink OMR
+    sheets) disappears in its own colour channel while pencil stays dark."""
+    if img.ndim == 2 or channel == "gray":
+        return to_gray(img)
+    return img[:, :, {"blue": 0, "green": 1, "red": 2}[channel]].copy()
+
+
 def darkness_map(gray: np.ndarray, bubble_radius: float) -> np.ndarray:
     """Return float32 'ink' map in [0,1], robust to shadows and uneven light.
 

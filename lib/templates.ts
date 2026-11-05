@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 
 import { fetchTemplates, type TemplateSummary } from './api';
 import { BUILTIN_TEMPLATES } from './omr/generated';
+import { getTemplate } from './omr/engine';
 
 export interface TemplateOption {
   id: string;
@@ -12,6 +13,7 @@ export interface TemplateOption {
   idDigits: number;
   printable: boolean;
   offline: boolean; // readable on the phone without internet
+  downloadable: boolean; // becomes offline once its template is downloaded
 }
 
 export const AUTO_TEMPLATE: TemplateOption = {
@@ -23,6 +25,7 @@ export const AUTO_TEMPLATE: TemplateOption = {
   idDigits: 0,
   printable: false,
   offline: false,
+  downloadable: false,
 };
 
 function builtinOptions(): TemplateOption[] {
@@ -34,10 +37,11 @@ function builtinOptions(): TemplateOption[] {
       name: t.name,
       description: t.description ?? '',
       numQuestions: mcq.reduce((s, b) => s + b.count, 0),
-      options: (mcq[0]?.options ?? 'ABCDE').split(''),
+      options: getTemplate(t).questions[0]?.options ?? ['A', 'B', 'C', 'D', 'E'],
       idDigits: idb.reduce((s, b) => s + b.count, 0),
       printable: true,
       offline: true,
+      downloadable: false,
     };
   });
 }
@@ -52,6 +56,7 @@ function fromServer(t: TemplateSummary): TemplateOption {
     idDigits: t.id_digits,
     printable: t.printable,
     offline: false,
+    downloadable: t.alignment === 'features' || t.alignment === 'page',
   };
 }
 

@@ -85,3 +85,20 @@ def test_jwt_enforced_when_configured(client, monkeypatch):
         headers={"Authorization": f"Bearer {token}"},
     )
     assert r.status_code == 422  # authorised; the image just has no sheet
+
+
+def test_reference_image_for_marker_free_template(tmp_path, monkeypatch):
+    from scantron_omr import OMREngine, TemplateRegistry
+
+    from . import knust_sim
+
+    reg = TemplateRegistry()
+    reg.add(knust_sim.template(tmp_path))
+    monkeypatch.setattr(main, "engine", lambda: OMREngine(reg))
+    c = TestClient(main.app)
+    r = c.get("/v1/templates/knust-sim/reference.jpg")
+    assert r.status_code == 200 and r.headers["content-type"] == "image/jpeg"
+    img = cv2.imdecode(np.frombuffer(r.content, np.uint8), cv2.IMREAD_GRAYSCALE)
+    assert img.shape == (1754, 1240)
+    spec = c.get("/v1/templates/knust-sim").json()["spec"]
+    assert spec["ink_channel"] == "red" and spec["bubble_size"] == [30, 15]

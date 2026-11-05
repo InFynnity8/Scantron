@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import { StyleSheet } from 'react-native';
-import Svg, { Circle, Polygon } from 'react-native-svg';
+import Svg, { Ellipse, Polygon } from 'react-native-svg';
 
 import { project } from '@/lib/omr/homography';
 import type { CompiledTemplate, ItemReading } from '@/lib/omr/types';
@@ -37,17 +37,25 @@ function LiveOverlay({
   questions,
   idColumns,
   keyOf,
+  shifts,
 }: {
   template: CompiledTemplate;
   H: number[];
+  shifts?: Record<string, [number, number]>;
   mapping: FrameMapping;
   questions: ItemReading[];
   idColumns: ItemReading[];
   keyOf: (label: string) => string[];
 }) {
   const r0 = project(H, 0, 0);
-  const r1 = project(H, template.radius, 0);
-  const rImg = Math.hypot(r1.x - r0.x, r1.y - r0.y);
+  const r1 = project(H, template.rx, 0);
+  const r2 = project(H, 0, template.ry);
+  const rxImg = Math.hypot(r1.x - r0.x, r1.y - r0.y);
+  const ryImg = Math.hypot(r2.x - r0.x, r2.y - r0.y);
+  const at = (block: number, x: number, y: number) => {
+    const s = shifts?.[String(block)];
+    return project(H, x + (s?.[0] ?? 0), y + (s?.[1] ?? 0));
+  };
   const corners = [
     [0, 0],
     [template.width, 0],
@@ -75,14 +83,15 @@ function LiveOverlay({
         else color = colors.success; // missed correct answer
       }
       const c = item.centers[i];
-      const p = project(H, c.x, c.y);
+      const p = at(item.block, c.x, c.y);
       const v = toView(mapping, p.x, p.y);
       circles.push(
-        <Circle
+        <Ellipse
           key={`${item.label}${opt}`}
           cx={v.x}
           cy={v.y}
-          r={Math.max(4, rImg * v.s * 1.25)}
+          rx={Math.max(4, rxImg * v.s * 1.2)}
+          ry={Math.max(3, ryImg * v.s * 1.2)}
           stroke={color}
           strokeWidth={marked ? 3 : 1.5}
           strokeDasharray={marked ? undefined : '3 3'}
@@ -97,9 +106,9 @@ function LiveOverlay({
     if (!item) return;
     item.options.forEach((opt, i) => {
       if (!col.marked.includes(opt)) return;
-      const p = project(H, item.centers[i].x, item.centers[i].y);
+      const p = at(item.block, item.centers[i].x, item.centers[i].y);
       const v = toView(mapping, p.x, p.y);
-      circles.push(<Circle key={`id${ci}${opt}`} cx={v.x} cy={v.y} r={Math.max(4, rImg * v.s * 1.25)} stroke={colors.info} strokeWidth={3} fill={`${colors.info}33`} />);
+      circles.push(<Ellipse key={`id${ci}${opt}`} cx={v.x} cy={v.y} rx={Math.max(4, rxImg * v.s * 1.2)} ry={Math.max(3, ryImg * v.s * 1.2)} stroke={colors.info} strokeWidth={3} fill={`${colors.info}33`} />);
     });
   });
 

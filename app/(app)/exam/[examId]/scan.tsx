@@ -11,12 +11,13 @@ import LiveOverlay, { type FrameMapping } from '@/components/LiveOverlay';
 import { Badge, Button, EmptyState, IconButton, tap } from '@/components/ui';
 import { gradeSheet, keyOptions } from '@/lib/grading';
 import { effectiveStudentId, type Exam, type Sheet } from '@/lib/models';
-import { builtinTemplates, DeviceScanError, scanGray } from '@/lib/omr/engine';
+import { DeviceScanError, scanGray, type DeviceScanOptions } from '@/lib/omr/engine';
 import type { CompiledTemplate, ScanReading } from '@/lib/omr/types';
 import { INDEX_FIELD } from '@/lib/omr/template';
-import { newSheetId, preparePhoto, ScanError, scanPhoto, toSheet, canGradeOnDevice } from '@/lib/scanner';
+import { canGradeOnDevice, deviceOptions, newSheetId, preparePhoto, ScanError, scanPhoto, toSheet } from '@/lib/scanner';
 import { useSettings } from '@/lib/settings';
 import { deleteSheet, upsertSheet, useExam, useSheets } from '@/lib/store';
+import { loadedTemplate } from '@/lib/templateCache';
 import { colors, font, radius, scoreColor, space, type } from '@/lib/theme';
 
 type Phase = 'live' | 'processing' | 'result' | 'error';
@@ -56,9 +57,21 @@ export default function ScanScreen() {
   const isKeyMode = mode === 'key';
   const onDevice = !!exam && canGradeOnDevice(exam);
   const liveMode = onDevice && settings.liveScan;
+  // Device-engine options (built-in sheet, or cached KNUST-style template + reference).
+  const [devOpts, setDevOpts] = useState<DeviceScanOptions | null>(null);
+  useEffect(() => {
+    if (!exam || !onDevice) return;
+    let alive = true;
+    deviceOptions(exam)
+      .then((o) => alive && setDevOpts(o))
+      .catch(() => alive && setDevOpts(null));
+    return () => {
+      alive = false;
+    };
+  }, [exam, onDevice]);
   const template: CompiledTemplate | undefined = useMemo(
-    () => (exam ? builtinTemplates().find((t) => t.id === exam.templateId) : undefined),
-    [exam],
+    () => (exam && devOpts ? devOpts.custom?.template ?? loadedTemplate(exam.templateId) : undefined),
+    [exam, devOpts],
   );
 
   const setPhaseBoth = (p: Phase) => {
@@ -117,7 +130,7 @@ export default function ScanScreen() {
 
   // ------------------------------------------------------------------ live loop
   useEffect(() => {
-    if (!liveMode || !focused || !ready || phase !== 'live' || !exam || !view.w) return;
+    if (!liveMode || !focused || !ready || phase !== 'live' || !exam || !view.w || !devOpts) return;
     let alive = true;
     let last = '';
     let stable = 0;
@@ -131,10 +144,10 @@ export default function ScanScreen() {
           const pic = await cam.current?.takePictureAsync({ quality: 0.5, skipProcessing: true, shutterSound: false, exif: false });
           frameUri = pic?.uri;
           if (!frameUri || !alive || phaseRef.current !== 'live') break;
-          const p = await preparePhoto(frameUri, 760, true, 0.7);
+          const p = await preparePhoto(frameUri, devOpts.custom ? 960 : 760, true, 0.7);
           smallUri = p.uri;
           try {
-            const reading = scanGray(p.gray!, { templateId: exam.templateId });
+            const reading = scanGray(p.gray!, devOpts);
             if (!alive || phaseRef.current !== 'live') break;
             setLive({ reading, mapping: { imgW: p.width, imgH: p.height, viewW: view.w, viewH: view.h } });
             const sig = signature(reading);
@@ -163,7 +176,7 @@ export default function ScanScreen() {
     return () => {
       alive = false;
     };
-  }, [liveMode, focused, ready, phase, exam, view.w, view.h, settings.autoCapture, capture]);
+  }, [liveMode, focused, ready, phase, exam, view.w, view.h, settings.autoCapture, capture, devOpts]);
 
   // ------------------------------------------------------------------ actions
   const duplicate = useMemo(() => {
@@ -234,6 +247,7 @@ export default function ScanScreen() {
         <LiveOverlay
           template={template}
           H={live.reading.homography}
+          shifts={live.reading.blockShifts}
           mapping={live.mapping}
           questions={live.reading.questions.filter((q) => Number(q.label) <= exam.numQuestions)}
           idColumns={template.fields.flatMap((f) => live.reading.fields[f.name]?.characters ?? [])}

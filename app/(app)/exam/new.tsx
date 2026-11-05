@@ -3,9 +3,10 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { Badge, Button, Field, Notice, Screen, SectionTitle, Segmented } from '@/components/ui';
+import { Badge, Button, Field, Notice, Screen, SectionTitle, Segmented, useToast } from '@/components/ui';
 import { DEFAULT_SCORING, type Exam } from '@/lib/models';
 import { getExam, saveExam, uid } from '@/lib/store';
+import { downloadTemplate, isCached } from '@/lib/templateCache';
 import { useTemplateOptions } from '@/lib/templates';
 import { colors, radius, space, type } from '@/lib/theme';
 
@@ -15,6 +16,7 @@ export default function NewExam() {
   const { examId } = useLocalSearchParams<{ examId?: string }>();
   const editing = examId ? getExam(examId) : undefined;
   const { options, loading, error } = useTemplateOptions();
+  const toast = useToast();
 
   const [title, setTitle] = useState(editing?.title ?? '');
   const [course, setCourse] = useState(editing?.course ?? '');
@@ -60,6 +62,11 @@ export default function NewExam() {
       updatedAt: Date.now(),
     };
     await saveExam(exam);
+    if (tpl.downloadable && !isCached(tpl.id)) {
+      downloadTemplate(tpl.id)
+        .then((ok) => ok && toast(`${tpl.name} downloaded - works offline now.`, 'success'))
+        .catch(() => toast('Could not download the sheet for offline use. It will retry when online.', 'danger'));
+    }
     if (editing) router.back();
     else router.replace({ pathname: '/exam/[examId]/key', params: { examId: exam.id, first: '1' } });
   };
@@ -97,6 +104,8 @@ export default function NewExam() {
                     <View style={{ flexDirection: 'row', gap: 6, marginTop: 6 }}>
                       {o.offline ? (
                         <Badge text="Works offline · live scan" color={colors.success} bg={colors.successSoft} icon="flash" />
+                      ) : o.downloadable ? (
+                        <Badge text="Offline after first download" color={colors.success} bg={colors.successSoft} icon="download-outline" />
                       ) : (
                         <Badge text="Needs internet" icon="cloud-outline" />
                       )}

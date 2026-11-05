@@ -135,7 +135,7 @@ function components(mask: Uint8Array, w: number, h: number, minSide: number, max
   return out;
 }
 
-function convexHull(flat: number[]): Pt[] {
+export function convexHull(flat: number[]): Pt[] {
   const pts: Pt[] = [];
   for (let i = 0; i < flat.length; i += 2) pts.push({ x: flat[i], y: flat[i + 1] });
   pts.sort((a, b) => a.x - b.x || a.y - b.y);
@@ -155,7 +155,7 @@ function convexHull(flat: number[]): Pt[] {
   return lower.slice(0, -1).concat(upper.slice(0, -1));
 }
 
-function polyArea(q: Pt[]): number {
+export function polyArea(q: Pt[]): number {
   let a = 0;
   for (let i = 0; i < q.length; i++) {
     const p = q[i];
@@ -166,7 +166,7 @@ function polyArea(q: Pt[]): number {
 }
 
 /** Largest-area quadrilateral approximation of a convex hull. */
-function hullToQuad(hull: Pt[]): Pt[] | null {
+export function hullToQuad(hull: Pt[]): Pt[] | null {
   const n = hull.length;
   if (n < 4) return null;
   // Diagonal 1: farthest pair.
@@ -207,7 +207,7 @@ function hullToQuad(hull: Pt[]): Pt[] | null {
   return quad;
 }
 
-function bilinear(img: GrayImage, x: number, y: number): number {
+export function bilinear(img: GrayImage, x: number, y: number): number {
   const { width: w, height: h, data } = img;
   if (x < 0 || y < 0 || x >= w - 1 || y >= h - 1) return 255;
   const x0 = Math.floor(x);

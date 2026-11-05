@@ -8,6 +8,7 @@ import { exportExamToExcel } from '@/lib/excel';
 import { examStats, gradeSheet } from '@/lib/grading';
 import { effectiveStudentId, needsReview, type Sheet } from '@/lib/models';
 import { deleteExam, useExam, useSheets } from '@/lib/store';
+import { downloadTemplate, isBuiltin, isCached, useTemplateCacheVersion } from '@/lib/templateCache';
 import { colors, font, radius, scoreColor, space, type } from '@/lib/theme';
 
 type Sort = 'recent' | 'id' | 'score' | 'review';
@@ -19,6 +20,8 @@ export default function ExamDetail() {
   const toast = useToast();
   const [sort, setSort] = useState<Sort>('recent');
   const [exporting, setExporting] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  useTemplateCacheVersion();
 
   const rows = useMemo(() => {
     if (!exam) return [];
@@ -87,6 +90,29 @@ export default function ExamDetail() {
       {!keyComplete && (
         <View style={{ marginTop: space.md }}>
           <Notice tone="warning" text={`Answer key: ${keySet} of ${exam.numQuestions} questions set. Unset questions are not graded.`} />
+        </View>
+      )}
+      {exam.templateId !== 'auto' && !isBuiltin(exam.templateId) && !isCached(exam.templateId) && (
+        <View style={{ marginTop: space.md, gap: space.sm }}>
+          <Notice tone="info" icon="cloud-download-outline" text="Download this sheet type once to grade it offline, instantly and with live scanning." />
+          <Button
+            title="Download for offline use"
+            icon="download-outline"
+            variant="secondary"
+            compact
+            loading={downloading}
+            onPress={async () => {
+              setDownloading(true);
+              try {
+                const ok = await downloadTemplate(exam.templateId);
+                toast(ok ? 'Ready for offline grading' : 'This sheet type can only be graded online.', ok ? 'success' : 'info');
+              } catch (e: any) {
+                toast(e?.message ?? 'Download failed', 'danger');
+              } finally {
+                setDownloading(false);
+              }
+            }}
+          />
         </View>
       )}
       {dupes.size > 0 && (

@@ -3,7 +3,7 @@
  * Keep the constants in sync with the Python engine.
  */
 import { project } from './homography';
-import type { FieldReading, GrayImage, Item, ItemReading, SheetStats, Status } from './types';
+import type { FieldReading, GrayImage, Item, ItemReading, Pt, SheetStats, Status } from './types';
 
 export const MIN_MARK_DELTA = 0.16;
 export const MIN_JUMP = 0.14;
@@ -11,6 +11,10 @@ export const DEFAULT_DELTA = 0.32;
 export const CONF_SCALE = 0.14;
 export const REVIEW_CONFIDENCE = 0.45;
 export const MARK_LEVEL_RATIO = 0.45;
+/** code columns: a lone, clearly darker cell this far above baseline is a faint mark */
+export const FAINT_DELTA = 0.1;
+/** blank item whose darkest cell stands out this much is sent for review */
+export const POSSIBLE_MARK_GAP = 0.09;
 
 // Sample pattern on the unit disk (inner fill) and an annulus (paper level).
 const DISK: [number, number][] = [];
@@ -34,8 +38,8 @@ for (const rad of [1.22, 1.38]) {
   }
 }
 
-function sample(img: GrayImage, x: number, y: number): number {
-  const { width: w, height: h, data } = img;
+function sample(img: GrayImage, x: number, y: number, data: Uint8Array = img.data): number {
+  const { width: w, height: h } = img;
   if (x < 0 || y < 0 || x >= w - 1 || y >= h - 1) return 255;
   const x0 = x | 0;
   const y0 = y | 0;
@@ -53,28 +57,42 @@ function percentile(sorted: number[], p: number): number {
   return sorted[lo] + (sorted[hi] - sorted[lo]) * (idx - lo);
 }
 
-/** Fill score for every bubble: blend of trimmed mean and 35th percentile of ink. */
-export function measureFills(img: GrayImage, H: number[], items: Item[], radius: number): number[][] {
+/**
+ * Fill score for every bubble: blend of trimmed mean and 35th percentile of ink.
+ * Samples an ellipse (rx, ry) so elongated "<A>" cells work; `ink` selects the
+ * channel (red removes red drop-out print); `shifts` are per-block offsets.
+ */
+export function measureFills(
+  img: GrayImage,
+  H: number[],
+  items: Item[],
+  rx: number,
+  ry: number = rx,
+  ink: Uint8Array = img.data,
+  shifts?: Map<number, Pt>,
+): number[][] {
   return items.map((it) =>
-    it.centers.map((c) => {
+    it.centers.map((c0) => {
+      const s = shifts?.get(it.block);
+      const c = s ? { x: c0.x + s.x, y: c0.y + s.y } : c0;
       const ring: number[] = [];
       for (const [dx, dy] of RING) {
-        const p = project(H, c.x + dx * radius, c.y + dy * radius);
-        ring.push(sample(img, p.x, p.y));
+        const p = project(H, c.x + dx * rx, c.y + dy * ry);
+        ring.push(sample(img, p.x, p.y, ink));
       }
       ring.sort((a, b) => a - b);
       const paper = Math.max(1, percentile(ring, 0.85));
-      const ink: number[] = [];
+      const vals: number[] = [];
       for (const [dx, dy] of DISK) {
-        const p = project(H, c.x + dx * radius, c.y + dy * radius);
-        const v = sample(img, p.x, p.y);
-        ink.push(Math.min(1, Math.max(0, 1 - v / paper)) / 0.85);
+        const p = project(H, c.x + dx * rx, c.y + dy * ry);
+        const v = sample(img, p.x, p.y, ink);
+        vals.push(Math.min(1, Math.max(0, 1 - v / paper)) / 0.85);
       }
-      ink.sort((a, b) => a - b);
-      const p95 = percentile(ink, 0.95);
-      const trimmed = ink.filter((v) => v <= p95);
-      const mean = trimmed.reduce((s, v) => s + v, 0) / Math.max(1, trimmed.length);
-      return 0.5 * mean + 0.5 * percentile(ink, 0.35);
+      vals.sort((a, b) => a - b);
+      const p95 = percentile(vals, 0.95);
+      const trimmed = vals.filter((v) => v <= p95);
+      const mean = trimmed.reduce((acc, v) => acc + v, 0) / Math.max(1, trimmed.length);
+      return 0.5 * mean + 0.5 * percentile(vals, 0.35);
     }),
   );
 }
@@ -97,11 +115,46 @@ export function sheetStatistics(all: number[]): SheetStats {
       break;
     }
   }
+  if (jump === 0) {
+    // No single clean gap (low-contrast print such as "<A>" cells, light
+    // pencil): split empty/filled by Otsu, if the two classes are distinct.
+    const split = otsuSplit(v);
+    if (split !== null) thr = split;
+  }
   return { baseline, floor, global_threshold: Math.max(thr, floor), jump };
 }
 
-export function decide(item: Item, fills: number[], stats: SheetStats): ItemReading {
+/** Two-class split of sorted fills maximising between-class variance (port of reader._otsu_split). */
+function otsuSplit(v: number[]): number | null {
+  const n = v.length;
+  if (n < 4) return null;
+  const total = v.reduce((a, b) => a + b, 0);
+  let c = 0;
+  let best = -1;
+  let bi = -1;
+  let bm0 = 0;
+  let bm1 = 0;
+  for (let k = 1; k < n; k++) {
+    c += v[k - 1];
+    const m0 = c / k;
+    const m1 = (total - c) / (n - k);
+    const score = k * (n - k) * (m1 - m0) ** 2;
+    if (score > best) {
+      best = score;
+      bi = k - 1;
+      bm0 = m0;
+      bm1 = m1;
+    }
+  }
+  if (bm1 - bm0 < MIN_JUMP * 1.5) return null;
+  return (v[bi] + v[bi + 1]) / 2;
+}
+
+/** Read one item. `codeColumn` (index number, course code...) also accepts a single faint but clearly darker cell, flagged "faint". */
+export function decide(item: Item, fills: number[], stats: SheetStats, codeColumn = false): ItemReading {
   let thr = stats.global_threshold;
+  let floor = stats.floor;
+  let faint = false;
   if (!fills.some((f) => f >= thr)) {
     // No clear mark by sheet standards: look for a faint but deliberate one.
     const order = [...fills].sort((a, b) => a - b);
@@ -115,8 +168,13 @@ export function decide(item: Item, fills: number[], stats: SheetStats): ItemRead
       }
     }
     if (k >= 0 && best >= MIN_JUMP && order[k + 1] >= stats.floor) thr = (order[k] + order[k + 1]) / 2;
+    else if (codeColumn && k === order.length - 2 && best >= MIN_JUMP && order[k + 1] >= stats.baseline + FAINT_DELTA) {
+      thr = (order[k] + order[k + 1]) / 2;
+      floor = stats.baseline + FAINT_DELTA;
+      faint = true;
+    }
   }
-  thr = Math.max(thr, stats.floor);
+  thr = Math.max(thr, floor);
 
   const marked = item.options.filter((_, i) => fills[i] >= thr);
   const status: Status = marked.length === 0 ? 'blank' : marked.length === 1 ? 'answered' : 'multiple';
@@ -126,13 +184,20 @@ export function decide(item: Item, fills: number[], stats: SheetStats): ItemRead
   if (confidence < REVIEW_CONFIDENCE) flags.push('ambiguous');
   if (fills.some((f) => f < thr && f >= stats.floor)) flags.push('possible_erasure');
   if (status === 'multiple') flags.push('multiple_marks');
+  if (faint && status === 'answered') flags.push('faint');
+  if (status === 'blank' && fills.length > 1) {
+    const top = [...fills].sort((a, b) => b - a);
+    // Read as blank, but one cell stands out: a light or off-centre mark. Review it.
+    if (top[0] - top[1] >= POSSIBLE_MARK_GAP && top[0] >= stats.baseline + FAINT_DELTA) flags.push('possible_mark');
+  }
   return { label: item.label, marked, status, confidence, fills, flags };
 }
 
-export function composeCode(label: string, cols: ItemReading[], allowTrailingBlank = true): FieldReading {
+export function composeCode(label: string, cols: ItemReading[], allowTrailingBlank = true, optional: boolean[] = []): FieldReading {
   let n = cols.length;
   if (allowTrailingBlank) while (n > 0 && cols[n - 1].status === 'blank' && !cols[n - 1].flags.length) n--;
-  const used = cols.slice(0, n);
+  let used = cols.slice(0, n);
+  used = used.filter((c, i) => !(optional[i] && c.status === 'blank' && !c.flags.length));
   const issues: string[] = [];
   const chars = used.map((c) => {
     if (c.status === 'answered') {

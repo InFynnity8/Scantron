@@ -174,7 +174,13 @@ def align_with_features(img: np.ndarray, t: Template) -> Aligned | None:
     if not cv2.isContourConvex(quad.astype(np.int32)):
         return None
     warped = _warp(img, H, t)
-    return Aligned(warped, to_gray(warped), "features", H, quad, {"matches": len(good), "inliers": inliers})
+    gray = to_gray(warped)
+    # Repetitive printing (grids of identical options) can yield a consistent
+    # but wrong homography: verify against the blank reference.
+    score = reference_score(gray, ref)
+    if score < 0.3:
+        return None
+    return Aligned(warped, gray, "features", H, quad, {"matches": len(good), "inliers": inliers, "reference_score": round(score, 3)})
 
 
 # --------------------------------------------------------------------------- #
@@ -258,15 +264,36 @@ def _orient_for_template(quad: np.ndarray, t: Template) -> np.ndarray:
     return quad
 
 
+def reference_score(gray: np.ndarray, ref: np.ndarray) -> float:
+    """Global NCC between an aligned sheet and the blank reference (1 = identical layout)."""
+    w = 310
+    h = int(round(ref.shape[0] * w / ref.shape[1]))
+    a = cv2.resize(gray, (w, h), interpolation=cv2.INTER_AREA).astype(np.float32)
+    b = cv2.resize(ref, (w, h), interpolation=cv2.INTER_AREA).astype(np.float32)
+    # Band-pass: keep printed structure, drop lighting gradients and shadows.
+    a = cv2.GaussianBlur(a, (3, 3), 0) - cv2.GaussianBlur(a, (0, 0), 6)
+    b = cv2.GaussianBlur(b, (3, 3), 0) - cv2.GaussianBlur(b, (0, 0), 6)
+    return float(cv2.matchTemplate(a, b, cv2.TM_CCOEFF_NORMED)[0, 0])
+
+
 def align_with_page(img: np.ndarray, t: Template) -> Aligned | None:
     quad = find_page_quad(img)
     if quad is None:
         return None
     quad = _orient_for_template(quad, t)
     dst = np.float32([[0, 0], [t.width, 0], [t.width, t.height], [0, t.height]])
-    H = cv2.getPerspectiveTransform(quad, dst)
-    warped = _warp(img, H, t)
-    return Aligned(warped, to_gray(warped), "page", H, quad, {})
+    candidates = [quad]
+    if t.alignment.reference is not None:
+        candidates.append(np.roll(quad, 2, axis=0))  # the sheet may be upside down
+    best = None
+    for q in candidates:
+        H = cv2.getPerspectiveTransform(q, dst)
+        warped = _warp(img, H, t)
+        gray = to_gray(warped)
+        score = reference_score(gray, t.alignment.reference) if t.alignment.reference is not None else 0.0
+        if best is None or score > best[0]:
+            best = (score, Aligned(warped, gray, "page", H, q, {"reference_score": round(score, 3)} if t.alignment.reference is not None else {}))
+    return best[1]
 
 
 def align_whole_image(img: np.ndarray, t: Template) -> Aligned:
@@ -284,14 +311,17 @@ def align_whole_image(img: np.ndarray, t: Template) -> Aligned:
 
 
 def refine_blocks(
-    dark: np.ndarray, t: Template, items: list[Item], max_shift: float
+    dark: np.ndarray, t: Template, items: list[Item], max_shift: float, gray: np.ndarray | None = None
 ) -> tuple[list[Item], dict[int, tuple[int, int]]]:
-    """Shift each block so that its bubble rings line up with the image.
+    """Shift each block so that its printed options line up with the image.
 
-    Uses normalised cross-correlation between the block's ink map and a
-    synthetic ring pattern. Returns shifted items and the shift per block.
+    * With a reference image (calibrated sheets): normalised cross-correlation
+      between the block as printed on the blank reference and the aligned photo.
+      Works for any print design (circles, "<A>" brackets, boxes).
+    * Otherwise: correlation with a synthetic outline pattern of the options.
+
+    Returns shifted items and the shift per block.
     """
-    r = t.bubble_radius
     pad = int(np.ceil(max_shift))
     shifts: dict[int, tuple[int, int]] = {}
     if pad < 1:
@@ -300,25 +330,36 @@ def refine_blocks(
     for it in items:
         by_block.setdefault(it.block, []).append(it)
 
+    ref = t.alignment.reference
+    use_ref = ref is not None and gray is not None and ref.shape == gray.shape
+    if use_ref:
+        ref_f = ref.astype(np.float32)
+        img_f = cv2.GaussianBlur(gray, (3, 3), 0).astype(np.float32)
     H, W = dark.shape
     for b_idx, its in by_block.items():
         x0, y0, x1, y1 = t.blocks[b_idx].bbox
-        x0, y0 = int(x0 - 3), int(y0 - 3)
-        x1, y1 = int(np.ceil(x1 + 3)), int(np.ceil(y1 + 3))
+        x0, y0 = int(x0 - 6), int(y0 - 6)
+        x1, y1 = int(np.ceil(x1 + 6)), int(np.ceil(y1 + 6))
         if x0 - pad < 0 or y0 - pad < 0 or x1 + pad > W or y1 + pad > H:
             continue
-        tmpl = np.zeros((y1 - y0, x1 - x0), np.float32)
-        for it in its:
-            for cx, cy in it.centers:
-                cv2.circle(tmpl, (int(round(cx - x0)), int(round(cy - y0))), int(round(r)), 1.0, 2, cv2.LINE_AA)
-        region = dark[y0 - pad : y1 + pad, x0 - pad : x1 + pad]
-        # Clip ink so solid fills don't dominate the ring evidence.
-        region = np.minimum(region, 0.5).astype(np.float32)
+        if use_ref:
+            tmpl = ref_f[y0:y1, x0:x1]
+            if float(tmpl.std()) < 3:  # featureless patch, nothing to lock onto
+                continue
+            region = img_f[y0 - pad : y1 + pad, x0 - pad : x1 + pad]
+        else:
+            tmpl = np.zeros((y1 - y0, x1 - x0), np.float32)
+            axes = (int(round(t.rx)), int(round(t.ry)))
+            for it in its:
+                for cx, cy in it.centers:
+                    cv2.ellipse(tmpl, (int(round(cx - x0)), int(round(cy - y0))), axes, 0, 0, 360, 1.0, 2, cv2.LINE_AA)
+            # Clip ink so solid fills don't dominate the outline evidence.
+            region = np.minimum(dark[y0 - pad : y1 + pad, x0 - pad : x1 + pad], 0.5).astype(np.float32)
         res = cv2.matchTemplate(region, tmpl, cv2.TM_CCOEFF_NORMED)
         _, best, _, loc = cv2.minMaxLoc(res)
         zero = float(res[pad, pad])
         dx, dy = loc[0] - pad, loc[1] - pad
-        if best > zero + 0.02 and best > 0.15:
+        if best > zero + 0.02 and best > (0.3 if use_ref else 0.15):
             shifts[b_idx] = (dx, dy)
     out = [it.shifted(*shifts[it.block]) if it.block in shifts else it for it in items]
     return out, shifts

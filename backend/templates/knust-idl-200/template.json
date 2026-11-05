@@ -1,0 +1,705 @@
+{
+  "id": "knust-idl-200",
+  "name": "KNUST IDL answer sheet (200)",
+  "description": "Institute of Distance Learning, KNUST - 200 questions A-E, candidate number, course code, year and semester.",
+  "page": {
+    "width": 1240,
+    "height": 1800
+  },
+  "bubble_radius": 5.5,
+  "bubble_size": [
+    24,
+    12
+  ],
+  "ink_channel": "red",
+  "alignment": {
+    "type": "features",
+    "reference": "reference.jpg"
+  },
+  "blocks": [
+    {
+      "type": "id",
+      "field": "index_number",
+      "label": "Candidate number",
+      "origin": [
+        164.97,
+        279.54
+      ],
+      "count": 7,
+      "options": "digits",
+      "option_gap": 18.643,
+      "item_gap": 30.197,
+      "options_axis": "y",
+      "name": "Candidate number",
+      "allow_trailing_blank": false
+    },
+    {
+      "type": "field",
+      "field": "course_code",
+      "label": "Course code",
+      "origin": [
+        738.85,
+        204.11
+      ],
+      "count": 5,
+      "options": "letters",
+      "option_gap": 18.994,
+      "item_gap": 29.861,
+      "options_axis": "y",
+      "name": "Course code letters",
+      "allow_blank": true,
+      "allow_trailing_blank": false
+    },
+    {
+      "type": "field",
+      "field": "course_code",
+      "label": "Course code",
+      "origin": [
+        888.27,
+        208.54
+      ],
+      "count": 3,
+      "options": "digits",
+      "option_gap": 18.433,
+      "item_gap": 29.879,
+      "options_axis": "y",
+      "name": "Course code digits"
+    },
+    {
+      "type": "field",
+      "field": "department_code",
+      "label": "Department code",
+      "origin": [
+        406.9,
+        277.36
+      ],
+      "count": 3,
+      "options": "digits",
+      "option_gap": 18.906,
+      "item_gap": 30.22,
+      "options_axis": "y",
+      "name": "Department code"
+    },
+    {
+      "type": "field",
+      "field": "academic_year",
+      "label": "Academic year",
+      "origin": [
+        650.22,
+        241.52
+      ],
+      "count": 1,
+      "options": [
+        "2024/25",
+        "2025/26",
+        "2026/27",
+        "2027/28"
+      ],
+      "option_gap": 18.775,
+      "item_gap": 1,
+      "options_axis": "y",
+      "name": "Academic year"
+    },
+    {
+      "type": "field",
+      "field": "year_of_student",
+      "label": "Year of student",
+      "origin": [
+        648.32,
+        447.42
+      ],
+      "count": 1,
+      "options": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7"
+      ],
+      "option_gap": 19.028,
+      "item_gap": 1,
+      "options_axis": "y",
+      "name": "Year of student"
+    },
+    {
+      "type": "field",
+      "field": "semester",
+      "label": "Semester",
+      "origin": [
+        1070.08,
+        545.07
+      ],
+      "count": 1,
+      "options": [
+        "1",
+        "2"
+      ],
+      "option_gap": 18.513,
+      "item_gap": 1,
+      "options_axis": "y",
+      "name": "Semester"
+    },
+    {
+      "type": "field",
+      "field": "candidate_type",
+      "label": "P / G",
+      "origin": [
+        102.1,
+        279.96
+      ],
+      "count": 1,
+      "options": [
+        "P",
+        "G"
+      ],
+      "option_gap": 35.924,
+      "item_gap": 1,
+      "options_axis": "x",
+      "name": "P/G"
+    },
+    {
+      "type": "mcq",
+      "name": "Q1-5",
+      "origin": [
+        134.48,
+        789.72
+      ],
+      "first": 1,
+      "count": 5,
+      "options": "ABCDE",
+      "option_gap": 31.381,
+      "item_gap": 18.543
+    },
+    {
+      "type": "mcq",
+      "name": "Q6-10",
+      "origin": [
+        133.3,
+        901.89
+      ],
+      "first": 6,
+      "count": 5,
+      "options": "ABCDE",
+      "option_gap": 31.512,
+      "item_gap": 18.543
+    },
+    {
+      "type": "mcq",
+      "name": "Q11-15",
+      "origin": [
+        132.88,
+        1014.95
+      ],
+      "first": 11,
+      "count": 5,
+      "options": "ABCDE",
+      "option_gap": 31.512,
+      "item_gap": 18.418
+    },
+    {
+      "type": "mcq",
+      "name": "Q16-20",
+      "origin": [
+        133.96,
+        1127.52
+      ],
+      "first": 16,
+      "count": 5,
+      "options": "ABCDE",
+      "option_gap": 31.381,
+      "item_gap": 18.543
+    },
+    {
+      "type": "mcq",
+      "name": "Q21-25",
+      "origin": [
+        134.43,
+        1240.63
+      ],
+      "first": 21,
+      "count": 5,
+      "options": "ABCDE",
+      "option_gap": 30.987,
+      "item_gap": 18.543
+    },
+    {
+      "type": "mcq",
+      "name": "Q26-30",
+      "origin": [
+        135.03,
+        1353.26
+      ],
+      "first": 26,
+      "count": 5,
+      "options": "ABCDE",
+      "option_gap": 30.987,
+      "item_gap": 18.418
+    },
+    {
+      "type": "mcq",
+      "name": "Q31-35",
+      "origin": [
+        136.04,
+        1465.01
+      ],
+      "first": 31,
+      "count": 5,
+      "options": "ABCDE",
+      "option_gap": 30.987,
+      "item_gap": 18.418
+    },
+    {
+      "type": "mcq",
+      "name": "Q36-40",
+      "origin": [
+        136.58,
+        1577.45
+      ],
+      "first": 36,
+      "count": 5,
+      "options": "ABCDE",
+      "option_gap": 30.856,
+      "item_gap": 18.791
+    },
+    {
+      "type": "mcq",
+      "name": "Q41-45",
+      "origin": [
+        346.85,
+        790.22
+      ],
+      "first": 41,
+      "count": 5,
+      "options": "ABCDE",
+      "option_gap": 30.987,
+      "item_gap": 18.294
+    },
+    {
+      "type": "mcq",
+      "name": "Q46-50",
+      "origin": [
+        346.93,
+        901.27
+      ],
+      "first": 46,
+      "count": 5,
+      "options": "ABCDE",
+      "option_gap": 30.987,
+      "item_gap": 18.418
+    },
+    {
+      "type": "mcq",
+      "name": "Q51-55",
+      "origin": [
+        346.2,
+        1013.4
+      ],
+      "first": 51,
+      "count": 5,
+      "options": "ABCDE",
+      "option_gap": 30.987,
+      "item_gap": 18.543
+    },
+    {
+      "type": "mcq",
+      "name": "Q56-60",
+      "origin": [
+        345.22,
+        1126.45
+      ],
+      "first": 56,
+      "count": 5,
+      "options": "ABCDE",
+      "option_gap": 31.118,
+      "item_gap": 18.791
+    },
+    {
+      "type": "mcq",
+      "name": "Q61-65",
+      "origin": [
+        344.56,
+        1239.52
+      ],
+      "first": 61,
+      "count": 5,
+      "options": "ABCDE",
+      "option_gap": 30.987,
+      "item_gap": 19.04
+    },
+    {
+      "type": "mcq",
+      "name": "Q66-70",
+      "origin": [
+        343.94,
+        1355.03
+      ],
+      "first": 66,
+      "count": 5,
+      "options": "ABCDE",
+      "option_gap": 30.987,
+      "item_gap": 18.791
+    },
+    {
+      "type": "mcq",
+      "name": "Q71-75",
+      "origin": [
+        344.01,
+        1468.22
+      ],
+      "first": 71,
+      "count": 5,
+      "options": "ABCDE",
+      "option_gap": 30.987,
+      "item_gap": 18.791
+    },
+    {
+      "type": "mcq",
+      "name": "Q76-80",
+      "origin": [
+        343.54,
+        1582.21
+      ],
+      "first": 76,
+      "count": 5,
+      "options": "ABCDE",
+      "option_gap": 31.118,
+      "item_gap": 19.04
+    },
+    {
+      "type": "mcq",
+      "name": "Q81-85",
+      "origin": [
+        555.83,
+        791.27
+      ],
+      "first": 81,
+      "count": 5,
+      "options": "ABCDE",
+      "option_gap": 30.724,
+      "item_gap": 18.169
+    },
+    {
+      "type": "mcq",
+      "name": "Q86-90",
+      "origin": [
+        556.01,
+        901.43
+      ],
+      "first": 86,
+      "count": 5,
+      "options": "ABCDE",
+      "option_gap": 30.724,
+      "item_gap": 18.294
+    },
+    {
+      "type": "mcq",
+      "name": "Q91-95",
+      "origin": [
+        555.72,
+        1012.92
+      ],
+      "first": 91,
+      "count": 5,
+      "options": "ABCDE",
+      "option_gap": 30.724,
+      "item_gap": 18.418
+    },
+    {
+      "type": "mcq",
+      "name": "Q96-100",
+      "origin": [
+        555.8,
+        1125.0
+      ],
+      "first": 96,
+      "count": 5,
+      "options": "ABCDE",
+      "option_gap": 30.724,
+      "item_gap": 18.667
+    },
+    {
+      "type": "mcq",
+      "name": "Q101-105",
+      "origin": [
+        555.85,
+        1237.97
+      ],
+      "first": 101,
+      "count": 5,
+      "options": "ABCDE",
+      "option_gap": 30.724,
+      "item_gap": 18.916
+    },
+    {
+      "type": "mcq",
+      "name": "Q106-110",
+      "origin": [
+        555.29,
+        1353.01
+      ],
+      "first": 106,
+      "count": 5,
+      "options": "ABCDE",
+      "option_gap": 30.987,
+      "item_gap": 18.916
+    },
+    {
+      "type": "mcq",
+      "name": "Q111-115",
+      "origin": [
+        554.96,
+        1467.51
+      ],
+      "first": 111,
+      "count": 5,
+      "options": "ABCDE",
+      "option_gap": 30.987,
+      "item_gap": 18.418
+    },
+    {
+      "type": "mcq",
+      "name": "Q116-120",
+      "origin": [
+        555.06,
+        1579.59
+      ],
+      "first": 116,
+      "count": 5,
+      "options": "ABCDE",
+      "option_gap": 30.987,
+      "item_gap": 18.916
+    },
+    {
+      "type": "mcq",
+      "name": "Q121-125",
+      "origin": [
+        763.53,
+        790.69
+      ],
+      "first": 121,
+      "count": 5,
+      "options": "ABCDE",
+      "option_gap": 30.724,
+      "item_gap": 18.418
+    },
+    {
+      "type": "mcq",
+      "name": "Q126-130",
+      "origin": [
+        763.01,
+        901.78
+      ],
+      "first": 126,
+      "count": 5,
+      "options": "ABCDE",
+      "option_gap": 30.856,
+      "item_gap": 18.294
+    },
+    {
+      "type": "mcq",
+      "name": "Q131-135",
+      "origin": [
+        763.71,
+        1013.39
+      ],
+      "first": 131,
+      "count": 5,
+      "options": "ABCDE",
+      "option_gap": 30.987,
+      "item_gap": 18.418
+    },
+    {
+      "type": "mcq",
+      "name": "Q136-140",
+      "origin": [
+        764.3,
+        1125.69
+      ],
+      "first": 136,
+      "count": 5,
+      "options": "ABCDE",
+      "option_gap": 31.118,
+      "item_gap": 18.791
+    },
+    {
+      "type": "mcq",
+      "name": "Q141-145",
+      "origin": [
+        765.03,
+        1239.23
+      ],
+      "first": 141,
+      "count": 5,
+      "options": "ABCDE",
+      "option_gap": 31.249,
+      "item_gap": 18.791
+    },
+    {
+      "type": "mcq",
+      "name": "Q146-150",
+      "origin": [
+        765.18,
+        1353.01
+      ],
+      "first": 146,
+      "count": 5,
+      "options": "ABCDE",
+      "option_gap": 30.987,
+      "item_gap": 18.543
+    },
+    {
+      "type": "mcq",
+      "name": "Q151-155",
+      "origin": [
+        765.32,
+        1465.55
+      ],
+      "first": 151,
+      "count": 5,
+      "options": "ABCDE",
+      "option_gap": 30.987,
+      "item_gap": 18.418
+    },
+    {
+      "type": "mcq",
+      "name": "Q156-160",
+      "origin": [
+        765.73,
+        1577.06
+      ],
+      "first": 156,
+      "count": 5,
+      "options": "ABCDE",
+      "option_gap": 30.724,
+      "item_gap": 18.916
+    },
+    {
+      "type": "mcq",
+      "name": "Q161-165",
+      "origin": [
+        974.44,
+        790.28
+      ],
+      "first": 161,
+      "count": 5,
+      "options": "ABCDE",
+      "option_gap": 31.512,
+      "item_gap": 18.418
+    },
+    {
+      "type": "mcq",
+      "name": "Q166-170",
+      "origin": [
+        974.48,
+        902.26
+      ],
+      "first": 166,
+      "count": 5,
+      "options": "ABCDE",
+      "option_gap": 31.643,
+      "item_gap": 18.418
+    },
+    {
+      "type": "mcq",
+      "name": "Q171-175",
+      "origin": [
+        975.49,
+        1014.83
+      ],
+      "first": 171,
+      "count": 5,
+      "options": "ABCDE",
+      "option_gap": 31.512,
+      "item_gap": 18.543
+    },
+    {
+      "type": "mcq",
+      "name": "Q176-180",
+      "origin": [
+        976.44,
+        1127.91
+      ],
+      "first": 176,
+      "count": 5,
+      "options": "ABCDE",
+      "option_gap": 31.118,
+      "item_gap": 18.543
+    },
+    {
+      "type": "mcq",
+      "name": "Q181-185",
+      "origin": [
+        976.58,
+        1240.5
+      ],
+      "first": 181,
+      "count": 5,
+      "options": "ABCDE",
+      "option_gap": 30.987,
+      "item_gap": 18.418
+    },
+    {
+      "type": "mcq",
+      "name": "Q186-190",
+      "origin": [
+        976.06,
+        1352.96
+      ],
+      "first": 186,
+      "count": 5,
+      "options": "ABCDE",
+      "option_gap": 30.987,
+      "item_gap": 18.418
+    },
+    {
+      "type": "mcq",
+      "name": "Q191-195",
+      "origin": [
+        975.53,
+        1464.59
+      ],
+      "first": 191,
+      "count": 5,
+      "options": "ABCDE",
+      "option_gap": 30.987,
+      "item_gap": 18.543
+    },
+    {
+      "type": "mcq",
+      "name": "Q196-200",
+      "origin": [
+        975.5,
+        1577.08
+      ],
+      "first": 196,
+      "count": 5,
+      "options": "ABCDE",
+      "option_gap": 30.987,
+      "item_gap": 18.543
+    }
+  ],
+  "regions": [
+    {
+      "name": "name",
+      "label": "Name / programme (handwritten)",
+      "bbox": [
+        0,
+        470,
+        530,
+        710
+      ]
+    },
+    {
+      "name": "written_number",
+      "label": "Candidate number (written)",
+      "bbox": [
+        90,
+        222,
+        370,
+        264
+      ]
+    }
+  ]
+}

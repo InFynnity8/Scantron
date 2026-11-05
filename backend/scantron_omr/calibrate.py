@@ -20,6 +20,9 @@ What it does
    (question numbering, extra fields, regions for handwritten boxes).
 
 Best input: a flat, evenly lit, sharp photo or a 200-300 DPI scan of a BLANK sheet.
+For sheets whose options are not round bubbles (e.g. KNUST "<A>" brackets), pass
+``--mask`` with an image of the same sheet where every option cell is painted
+white on black; the cells are then taken from the mask.
 """
 
 from __future__ import annotations
@@ -132,6 +135,30 @@ def _field_blocks(name: str, label: str, alphabet: str, cols: list[list[Blob]]) 
     return blocks
 
 
+def blobs_from_mask(mask: np.ndarray) -> list[Blob]:
+    """Option cells from a hand-made mask (white cells on black), e.g. drawn in Photoshop."""
+    g = mask if mask.ndim == 2 else cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
+    _, bw = cv2.threshold(g, 127, 255, cv2.THRESH_BINARY)
+    n, _, stats, cents = cv2.connectedComponentsWithStats(bw, connectivity=8)
+    blobs = [Blob(float(cents[i][0]), float(cents[i][1]), float(stats[i][2]), float(stats[i][3])) for i in range(1, n) if stats[i][4] >= 12]
+    if not blobs:
+        return []
+    mw = float(np.median([b.w for b in blobs]))
+    mh = float(np.median([b.h for b in blobs]))
+    # Drop big region masks (e.g. a whole answer area) - keep cell-sized components.
+    return [b for b in blobs if 0.5 * mw <= b.w <= 1.8 * mw and 0.5 * mh <= b.h <= 1.8 * mh]
+
+
+def detect_ink_channel(sheet: np.ndarray) -> str:
+    """'red' if the print is red/pink drop-out ink (it vanishes in the red channel)."""
+    b, g, r = (sheet[:, :, i].astype(np.float32) for i in range(3))
+    printed = (g < 200) & (np.abs(r - g) > 5)
+    if printed.mean() < 0.002:
+        return "gray"
+    redness = float(np.median((r - g)[printed]))
+    return "red" if redness > 45 else "gray"
+
+
 def calibrate(
     image: np.ndarray,
     template_id: str,
@@ -141,6 +168,8 @@ def calibrate(
     order: str = "column",
     width: int = 1240,
     crop: bool = True,
+    mask: np.ndarray | None = None,
+    ink: str = "auto",
 ) -> tuple[dict, np.ndarray, list[str]]:
     notes: list[str] = []
     if crop:
@@ -160,10 +189,22 @@ def calibrate(
     sheet = cv2.warpPerspective(image, H, (width, height), flags=cv2.INTER_AREA, borderMode=cv2.BORDER_REPLICATE)
     gray = cv2.cvtColor(sheet, cv2.COLOR_BGR2GRAY)
 
-    blobs = find_bubbles(gray)
+    if mask is not None:
+        if mask.shape[:2] != image.shape[:2]:
+            mask = cv2.resize(mask, (image.shape[1], image.shape[0]), interpolation=cv2.INTER_NEAREST)
+        warped_mask = cv2.warpPerspective(mask, H, (width, height), flags=cv2.INTER_NEAREST)
+        blobs = blobs_from_mask(warped_mask)
+        notes.append(f"Using {len(blobs)} option cells from the mask.")
+    else:
+        blobs = find_bubbles(gray)
     if not blobs:
         raise ValueError("No bubbles found on the blank sheet.")
     radius = float(np.median([b.r for b in blobs]))
+    cell_w = float(np.median([b.w for b in blobs]))
+    cell_h = float(np.median([b.h for b in blobs]))
+    elongated = max(cell_w, cell_h) / max(1.0, min(cell_w, cell_h)) > 1.3
+    ink_channel = detect_ink_channel(sheet) if ink == "auto" else ink
+    notes.append(f"Ink channel: {ink_channel}" + (" (red drop-out print detected)" if ink_channel == "red" else ""))
     groups, n_opt, leftovers = find_question_groups(blobs, len(options))
     notes.append(f"Found {len(blobs)} bubbles (radius ~{radius:.1f}px), {len(groups)} questions of {n_opt} options.")
     blocks = _mcq_blocks(groups, options, order) if groups else []
@@ -190,6 +231,8 @@ def calibrate(
         "description": f"Calibrated from a blank sheet ({len(groups)} questions).",
         "page": {"width": width, "height": height},
         "bubble_radius": round(radius * 0.92, 2),
+        **({"bubble_size": [round(cell_w * 0.9, 1), round(cell_h * 0.9, 1)]} if elongated else {}),
+        "ink_channel": ink_channel,
         "alignment": {"type": "features", "reference": "reference.png"},
         "blocks": blocks,
         "regions": [],
@@ -201,15 +244,16 @@ def preview(spec: dict, sheet: np.ndarray) -> np.ndarray:
     t = template_from_spec({**spec, "alignment": {"type": "none"}})
     img = sheet.copy()
     r = int(round(t.bubble_radius))
+    axes = (int(round(t.rx)), int(round(t.ry)))
     for q in t.questions:
         for cx, cy in q.centers:
-            cv2.circle(img, (int(cx), int(cy)), r, (40, 170, 40), 2)
+            cv2.ellipse(img, (int(cx), int(cy)), axes, 0, 0, 360, (40, 170, 40), 2)
         x0, y0 = q.centers[0]
         cv2.putText(img, q.label, (int(x0) - 3 * r - 18, int(y0) + 5), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 0, 220), 1)
     for f in t.fields.values():
         for col in f.columns:
             for cx, cy in col.centers:
-                cv2.circle(img, (int(cx), int(cy)), r, (210, 120, 30), 2)
+                cv2.ellipse(img, (int(cx), int(cy)), axes, 0, 0, 360, (210, 120, 30), 2)
     return img
 
 
@@ -229,6 +273,8 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--order", choices=["column", "row"], default="column", help="question numbering direction")
     ap.add_argument("--width", type=int, default=1240)
     ap.add_argument("--no-crop", action="store_true", help="image is already cropped to the sheet (scanner)")
+    ap.add_argument("--mask", help="mask image aligned with IMAGE: option cells white on black (e.g. made in Photoshop)")
+    ap.add_argument("--ink", choices=["auto", "gray", "red"], default="auto", help="channel used to read marks")
     a = ap.parse_args(argv)
 
     img = cv2.imread(a.image, cv2.IMREAD_COLOR)
@@ -238,7 +284,10 @@ def main(argv: list[str] | None = None) -> None:
     for f in a.field:
         n, alpha, ln = f.split(":")
         fields.append((n, alpha, int(ln)))
-    spec, sheet, notes = calibrate(img, a.id, a.name, a.options, fields, a.order, a.width, not a.no_crop)
+    mask = cv2.imread(a.mask, cv2.IMREAD_GRAYSCALE) if a.mask else None
+    if a.mask and mask is None:
+        raise SystemExit(f"cannot read {a.mask}")
+    spec, sheet, notes = calibrate(img, a.id, a.name, a.options, fields, a.order, a.width, not a.no_crop, mask, a.ink)
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
     cv2.imwrite(str(out / "reference.png"), cv2.cvtColor(sheet, cv2.COLOR_BGR2GRAY))

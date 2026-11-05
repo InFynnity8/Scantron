@@ -6,6 +6,7 @@
 import { BUILTIN_TEMPLATES } from './generated';
 import { findHomography, project } from './homography';
 import { detectMarkers } from './markers';
+import { registerToReference } from './register';
 import { composeCode, decide, measureFills, sheetStatistics } from './reader';
 import { compileTemplate } from './template';
 import type { CompiledTemplate, GrayImage, Pt, ScanReading, TemplateSpec } from './types';
@@ -43,10 +44,27 @@ export interface DeviceScanOptions {
   /** expected template; if omitted the template is identified from the markers */
   templateId?: string;
   templates?: CompiledTemplate[];
+  /** marker-free sheet (e.g. KNUST): its template + blank reference image */
+  custom?: { template: CompiledTemplate; reference: GrayImage };
+}
+
+function inkData(img: GrayImage, t: CompiledTemplate): Uint8Array {
+  return t.inkChannel === 'red' && img.red ? img.red : img.data;
 }
 
 export function scanGray(img: GrayImage, opts: DeviceScanOptions = {}): ScanReading {
   const t0 = Date.now();
+  if (opts.custom) {
+    const { template: t, reference } = opts.custom;
+    const reg = registerToReference(img, t, reference);
+    if (!reg) throw new DeviceScanError('no_sheet', 'Place the whole sheet on a darker surface and fit it in the frame.');
+    const a = project(reg.H, 0, 0);
+    const b = project(reg.H, t.rx * 2, 0);
+    const optPx = Math.hypot(b.x - a.x, b.y - a.y) / 2;
+    if (optPx < 3) throw new DeviceScanError('too_small', 'Move closer - the sheet is too small in the frame.');
+    const warnings = reg.matched < t.blocks.length * 0.7 ? ['Part of the sheet could not be matched - check the highlighted answers.'] : [];
+    return read(img, t, reg.H, reg.shifts, warnings, t0);
+  }
   const templates = opts.templates ?? builtinTemplates();
   const markers = detectMarkers(img);
   const ids = new Set(markers.map((m) => m.id));
@@ -98,11 +116,17 @@ export function scanGray(img: GrayImage, opts: DeviceScanOptions = {}): ScanRead
     throw new DeviceScanError('too_small', 'Move closer - the sheet is too small in the frame.');
   }
 
+  const warnings: string[] = [];
+  if (bubblePx < 6) warnings.push('Sheet is small in the photo - move closer for best accuracy.');
+  return read(img, t, H, undefined, warnings, t0);
+}
+
+function read(img: GrayImage, t: CompiledTemplate, H: number[], shifts: Map<number, Pt> | undefined, warnings: string[], t0: number): ScanReading {
   const fieldItems = t.fields.flatMap((f) => f.columns);
   const items = [...t.questions, ...fieldItems];
-  const fills = measureFills(img, H, items, t.radius);
+  const fills = measureFills(img, H, items, t.rx, t.ry, inkData(img, t), shifts);
   const stats = sheetStatistics(fills.flat());
-  const readings = items.map((it, i) => decide(it, fills[i], stats));
+  const readings = items.map((it, i) => decide(it, fills[i], stats, i >= t.questions.length));
   const questions = readings.slice(0, t.questions.length);
   const fields: ScanReading['fields'] = {};
   let k = t.questions.length;
@@ -110,7 +134,7 @@ export function scanGray(img: GrayImage, opts: DeviceScanOptions = {}): ScanRead
   for (const f of t.fields) {
     const cols = readings.slice(k, k + f.columns.length);
     k += f.columns.length;
-    const fr = composeCode(f.label, cols, f.allowTrailingBlank);
+    const fr = composeCode(f.label, cols, f.allowTrailingBlank, f.optional);
     fields[f.name] = fr;
     if (!fr.value || fr.value.includes('?') || fr.issues.length || fr.confidence < 0.45) {
       reasons.push(`${f.label} could not be read with confidence`);
@@ -118,9 +142,6 @@ export function scanGray(img: GrayImage, opts: DeviceScanOptions = {}): ScanRead
   }
   const reviewQ = questions.filter((q) => q.flags.length).map((q) => q.label);
   if (reviewQ.length) reasons.unshift(`${reviewQ.length} question(s) have unclear marks`);
-  const warnings: string[] = [];
-  if (bubblePx < 6) warnings.push('Sheet is small in the photo - move closer for best accuracy.');
-
   return {
     templateId: t.id,
     engine: 'device',
@@ -130,6 +151,7 @@ export function scanGray(img: GrayImage, opts: DeviceScanOptions = {}): ScanRead
     warnings,
     stats,
     homography: H,
+    blockShifts: shifts ? Object.fromEntries([...shifts].map(([b, p]) => [String(b), [p.x, p.y] as [number, number]])) : undefined,
     imageSize: { width: img.width, height: img.height },
     timingMs: Date.now() - t0,
   };

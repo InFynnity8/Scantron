@@ -25,9 +25,15 @@ def annotate(
     graded: dict[str, Any] | None,
     radius: float,
     header: str | None = None,
+    ry: float | None = None,
 ) -> np.ndarray:
     img = sheet.copy()
     r = int(round(radius)) + 2
+    axes = (r, int(round(ry if ry else radius)) + 2)
+    r = max(axes)
+
+    def ring(c, color, thick):
+        cv2.ellipse(img, c, axes, 0, 0, 360, color, thick, cv2.LINE_AA)
     results = {q["label"]: q for q in graded["questions"]} if graded else {}
 
     for q in questions:
@@ -46,20 +52,20 @@ def annotate(
                     color = ORANGE
                 else:
                     color = RED
-                cv2.circle(img, c, r, color, 3, cv2.LINE_AA)
+                ring(c, color, 3)
             elif opt in key:
                 # Correct answer the student did not pick.
-                cv2.circle(img, c, r, GREEN, 2, cv2.LINE_AA)
+                ring(c, GREEN, 2)
         if q.needs_review:
             x0 = int(q.centers[:, 0].min()) - r - 6
             x1 = int(q.centers[:, 0].max()) + r + 6
             y = int(q.centers[0, 1])
-            cv2.rectangle(img, (x0, y - r - 4), (x1, y + r + 4), YELLOW, 2, cv2.LINE_AA)
+            cv2.rectangle(img, (x0, y - axes[1] - 4), (x1, y + axes[1] + 4), YELLOW, 2, cv2.LINE_AA)
 
     for col in id_cols:
         for i, (cx, cy) in enumerate(col.centers):
             if col.options[i] in col.marked:
-                cv2.circle(img, (int(round(cx)), int(round(cy))), r, BLUE, 3, cv2.LINE_AA)
+                ring((int(round(cx)), int(round(cy))), BLUE, 3)
         if col.needs_review or col.status != "answered":
             xs, ys = col.centers[:, 0], col.centers[:, 1]
             cv2.rectangle(
