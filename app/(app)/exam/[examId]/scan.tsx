@@ -1,12 +1,13 @@
-import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as FileSystem from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, Pressable, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
+import { ActivityIndicator, Animated, Linking, Pressable, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Icon } from '@/components/Icon';
 import LiveOverlay, { type FrameMapping } from '@/components/LiveOverlay';
 import { Badge, Button, EmptyState, IconButton, tap } from '@/components/ui';
 import { gradeSheet, keyOptions } from '@/lib/grading';
@@ -210,17 +211,38 @@ export default function ScanScreen() {
 
   // ------------------------------------------------------------------ render
   if (!exam) return <SafeAreaView style={styles.fill} />;
-  if (!permission) return <SafeAreaView style={styles.fill} />;
+  if (!permission) return <SafeAreaView style={styles.permission} />;
   if (!permission.granted) {
+    // Once Android has been told "don't ask again", the system dialog no longer
+    // appears - the only way forward is the app's settings page.
+    const blocked = permission.status === 'denied' && !permission.canAskAgain;
     return (
-      <SafeAreaView style={[styles.fill, { justifyContent: 'center' }]}>
+      <SafeAreaView style={styles.permission}>
         <EmptyState
           icon="camera-outline"
           title="Camera access needed"
-          body="Scantron uses the camera to read answer sheets. Photos stay on your phone unless the sheet type needs the grading server."
-          action={<Button title="Allow camera" onPress={requestPermission} />}
+          body={
+            blocked
+              ? 'Camera access is turned off for Scantron. Open Settings, tap Permissions, then allow Camera.'
+              : 'Scantron reads answer sheets with the camera. Photos stay on your phone unless the sheet type needs the grading server.'
+          }
+          action={
+            <Button
+              title={blocked ? 'Open settings' : 'Allow camera'}
+              icon={blocked ? 'settings-outline' : 'camera-outline'}
+              onPress={async () => {
+                if (blocked) return void Linking.openSettings();
+                const res = await requestPermission();
+                if (!res.granted && !res.canAskAgain) void Linking.openSettings();
+              }}
+              style={{ alignSelf: 'stretch' }}
+            />
+          }
         />
-        <Button title="Go back" variant="ghost" onPress={() => router.back()} />
+        <View style={{ paddingHorizontal: space.xl, gap: space.sm }}>
+          <Button title="Choose a photo instead" icon="images-outline" variant="secondary" onPress={pickFromGallery} />
+          <Button title="Go back" variant="ghost" onPress={() => router.back()} />
+        </View>
       </SafeAreaView>
     );
   }
@@ -231,6 +253,7 @@ export default function ScanScreen() {
 
   return (
     <View style={styles.fill} onLayout={(e: LayoutChangeEvent) => setView({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}>
+      <StatusBar style="light" />
       {focused && (
         <CameraView
           ref={cam}
@@ -258,14 +281,14 @@ export default function ScanScreen() {
 
       {/* top bar */}
       <SafeAreaView edges={['top']} style={styles.topBar} pointerEvents="box-none">
-        <IconButton icon="close" label="Close" onPress={() => router.back()} style={styles.glass} />
+        <IconButton icon="close" label="Close" onPress={() => router.back()} style={styles.glass} color={colors.camText} />
         <View style={[styles.glass, styles.pill]}>
-          <Text style={{ color: colors.text, fontWeight: '700' }} numberOfLines={1}>
+          <Text style={{ color: colors.camText, fontWeight: '600' }} numberOfLines={1}>
             {isKeyMode ? 'Scan answer key' : exam.title}
           </Text>
-          {!isKeyMode && <Text style={{ color: colors.textMuted, fontSize: 12 }}>{sheets.length ? `${sheets.length} graded` : "No sheets yet"}</Text>}
+          {!isKeyMode && <Text style={{ color: CAM_MUTED, fontSize: 12 }}>{sheets.length ? `${sheets.length} graded` : "No sheets yet"}</Text>}
         </View>
-        <IconButton icon={torch ? 'flash' : 'flash-off'} label="Torch" onPress={() => setTorch((t) => !t)} style={styles.glass} color={torch ? colors.accent : colors.text} />
+        <IconButton icon={torch ? 'flash' : 'flash-off'} label="Torch" onPress={() => setTorch((t) => !t)} style={styles.glass} color={torch ? TORCH_ON : colors.camText} />
       </SafeAreaView>
 
       {/* live status */}
@@ -273,19 +296,19 @@ export default function ScanScreen() {
         <View style={styles.liveInfo} pointerEvents="none">
           {liveGrade ? (
             <View style={[styles.glass, styles.liveCard]}>
-              <Text style={{ color: scoreColor(liveGrade.percentage), fontSize: 30, fontWeight: '900' }}>
+              <Text style={{ color: camScoreColor(liveGrade.percentage), fontSize: 30, fontWeight: '800' }}>
                 {liveGrade.score}/{liveGrade.max}
               </Text>
-              <Text style={{ color: colors.text, fontFamily: font.mono, fontWeight: '700' }}>{liveId ?? '—'}</Text>
+              <Text style={{ color: colors.camText, fontFamily: font.mono, fontWeight: '700' }}>{liveId ?? '—'}</Text>
             </View>
           ) : null}
           <View style={[styles.glass, styles.hint]}>
             {onDevice ? (
-              <Badge text={liveMode ? 'LIVE · on-device' : 'On-device'} color={colors.success} bg="transparent" icon="flash" />
+              <Badge text={liveMode ? 'Live' : 'On phone'} color={CAM_GOOD} bg="transparent" icon="flash" />
             ) : (
-              <Badge text="Server grading" color={colors.info} bg="transparent" icon="cloud-outline" />
+              <Badge text="Server" color={CAM_INFO} bg="transparent" icon="cloud-outline" />
             )}
-            <Text style={{ color: colors.text, fontSize: 14, marginLeft: 4, flexShrink: 1 }}>{liveMode ? hint : 'Fit the sheet in the frame, then tap capture'}</Text>
+            <Text style={{ color: colors.camText, fontSize: 14, marginLeft: 4, flexShrink: 1 }}>{liveMode ? hint : 'Fit the sheet in the frame, then tap capture'}</Text>
           </View>
         </View>
       )}
@@ -293,7 +316,7 @@ export default function ScanScreen() {
       {/* bottom controls */}
       {phase === 'live' && (
         <SafeAreaView edges={['bottom']} style={styles.controls}>
-          <IconButton icon="images-outline" label="Choose photo" onPress={pickFromGallery} style={[styles.glass, { width: 52, height: 52 }]} />
+          <IconButton icon="images-outline" label="Choose photo" onPress={pickFromGallery} style={[styles.glass, { width: 52, height: 52 }]} color={colors.camText} />
           <Pressable onPress={capture} style={styles.shutter} accessibilityRole="button" accessibilityLabel="Capture">
             <View style={styles.shutterInner} />
           </Pressable>
@@ -303,9 +326,9 @@ export default function ScanScreen() {
 
       {phase === 'processing' && (
         <View style={[StyleSheet.absoluteFill, styles.processing]}>
-          <ActivityIndicator size="large" color={colors.accent} />
-          <Text style={[type.heading, { marginTop: space.lg }]}>Reading sheet…</Text>
-          <Text style={type.bodyMuted}>{onDevice ? 'Grading on your phone' : 'Uploading to the grading server'}</Text>
+          <ActivityIndicator size="large" color={colors.camText} />
+          <Text style={[type.heading, { marginTop: space.lg, color: colors.camText }]}>Reading sheet…</Text>
+          <Text style={[type.bodyMuted, { color: CAM_MUTED }]}>{onDevice ? 'Grading on your phone' : 'Uploading to the grading server'}</Text>
         </View>
       )}
 
@@ -318,7 +341,7 @@ export default function ScanScreen() {
           {phase === 'error' && (
             <View>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: space.md }}>
-                <Ionicons name="alert-circle" size={26} color={colors.danger} />
+                <Icon name="alert-circle" size={26} color={colors.danger} />
                 <Text style={[type.heading, { marginLeft: 8 }]}>Couldn’t read this sheet</Text>
               </View>
               <Text style={[type.bodyMuted, { marginBottom: space.lg }]}>{error}</Text>
@@ -394,10 +417,10 @@ function ResultBody({
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
         <View style={{ flex: 1 }}>
           <Text style={type.label}>Index number</Text>
-          <Text style={{ color: id ? colors.text : colors.warning, fontFamily: font.mono, fontSize: 24, fontWeight: '800' }}>{id ?? 'Not read'}</Text>
+          <Text style={{ color: id ? colors.text : colors.warning, fontFamily: font.mono, fontSize: 24, fontWeight: '700' }}>{id ?? 'Not read'}</Text>
         </View>
         <View style={{ alignItems: 'flex-end' }}>
-          <Text style={{ color: scoreColor(g.percentage), fontSize: 34, fontWeight: '900' }}>{g.percentage == null ? '–' : `${g.percentage}%`}</Text>
+          <Text style={{ color: scoreColor(g.percentage), fontSize: 34, fontWeight: '800' }}>{g.percentage == null ? '–' : `${g.percentage}%`}</Text>
           <Text style={type.caption}>
             {g.score}/{g.max} · {g.counts.correct} right · {g.counts.wrong + g.counts.multiple} wrong · {g.counts.blank} blank
           </Text>
@@ -442,17 +465,28 @@ function Guide() {
   );
 }
 
+// Camera chrome sits on the live preview, so it uses its own light-on-dark palette.
+const CAM_MUTED = 'rgba(255,255,255,0.72)';
+const CAM_GOOD = '#7DDBA3';
+const CAM_INFO = '#A8CBEB';
+const TORCH_ON = '#FFD166';
+function camScoreColor(pct: number | null | undefined) {
+  if (pct == null) return colors.camText;
+  return pct >= 70 ? CAM_GOOD : pct >= 50 ? TORCH_ON : '#FF8A80';
+}
+
 const styles = StyleSheet.create({
   fill: { flex: 1, backgroundColor: '#000' },
-  glass: { backgroundColor: 'rgba(14,16,21,0.72)' },
+  permission: { flex: 1, backgroundColor: colors.bg, justifyContent: 'center' },
+  glass: { backgroundColor: colors.camBar },
   topBar: { position: 'absolute', top: 0, left: 0, right: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: space.md, gap: space.sm },
   pill: { flex: 1, borderRadius: radius.pill, paddingVertical: 8, paddingHorizontal: space.lg, alignItems: 'center' },
   liveInfo: { position: 'absolute', left: space.lg, right: space.lg, bottom: 150, alignItems: 'center', gap: space.sm },
   liveCard: { borderRadius: radius.lg, paddingVertical: space.sm, paddingHorizontal: space.xl, alignItems: 'center' },
   hint: { flexDirection: 'row', alignItems: 'center', borderRadius: radius.pill, paddingVertical: 8, paddingHorizontal: space.md, maxWidth: '100%' },
   controls: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', paddingBottom: space.xl, paddingTop: space.md },
-  shutter: { width: 78, height: 78, borderRadius: 39, borderWidth: 4, borderColor: '#fff', alignItems: 'center', justifyContent: 'center' },
-  shutterInner: { width: 62, height: 62, borderRadius: 31, backgroundColor: colors.accent },
+  shutter: { width: 76, height: 76, borderRadius: 38, borderWidth: 3, borderColor: '#fff', alignItems: 'center', justifyContent: 'center' },
+  shutterInner: { width: 62, height: 62, borderRadius: 31, backgroundColor: '#fff' },
   processing: { backgroundColor: colors.overlay, alignItems: 'center', justifyContent: 'center' },
   result: {
     position: 'absolute',
@@ -469,5 +503,5 @@ const styles = StyleSheet.create({
   },
   guideWrap: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
   guide: { width: '82%', aspectRatio: 210 / 297, maxHeight: '72%' },
-  corner: { position: 'absolute', width: 36, height: 36, borderColor: colors.accent, borderRadius: 4 },
+  corner: { position: 'absolute', width: 36, height: 36, borderColor: colors.camGuide, borderRadius: 3 },
 });

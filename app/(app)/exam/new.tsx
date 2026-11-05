@@ -1,8 +1,8 @@
-import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { Icon } from '@/components/Icon';
 import { Badge, Button, Field, Notice, Screen, SectionTitle, Segmented, useToast } from '@/components/ui';
 import { DEFAULT_SCORING, type Exam } from '@/lib/models';
 import { getExam, saveExam, uid } from '@/lib/store';
@@ -97,7 +97,7 @@ export default function NewExam() {
                   accessibilityRole="radio"
                   accessibilityState={{ checked: active }}
                 >
-                  <Ionicons name={active ? 'radio-button-on' : 'radio-button-off'} size={20} color={active ? colors.accent : colors.textFaint} />
+                  <Icon name={active ? 'radio-button-on' : 'radio-button-off'} size={20} color={active ? colors.accent : colors.textFaint} />
                   <View style={{ flex: 1, marginLeft: space.md }}>
                     <Text style={[type.body, { fontWeight: '600' }]}>{o.name}</Text>
                     {!!o.description && <Text style={type.caption}>{o.description}</Text>}

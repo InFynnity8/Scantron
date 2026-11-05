@@ -1,9 +1,9 @@
-import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { Icon } from '@/components/Icon';
 import SheetImage from '@/components/SheetImage';
 import { Badge, Button, Card, IconButton, Notice, Screen, SectionTitle, Stat, tap, useToast } from '@/components/ui';
 import { gradeSheet, type GradedQuestion } from '@/lib/grading';
@@ -106,7 +106,7 @@ export default function SheetDetail() {
         <SectionTitle>Index number</SectionTitle>
         <Card style={{ flexDirection: 'row', alignItems: 'center' }}>
           <View style={{ flex: 1 }}>
-            <Text style={{ color: colors.text, fontFamily: font.mono, fontSize: 22, fontWeight: '800' }}>{id ?? '—'}</Text>
+            <Text style={{ color: colors.text, fontFamily: font.mono, fontSize: 22, fontWeight: '700' }}>{id ?? '—'}</Text>
             <Text style={type.caption}>
               {sheet.idOverride ? `Corrected by hand (scanned: ${sheet.studentId ?? 'none'})` : `Read with ${Math.round(sheet.studentIdConfidence * 100)}% confidence`}
             </Text>
@@ -129,7 +129,7 @@ export default function SheetDetail() {
 
         <SectionTitle>Sheet</SectionTitle>
         <SheetImage sheet={sheet} graded={g.questions} />
-        <Text style={[type.caption, { marginTop: 6, textAlign: 'center' }]}>Pinch or double-tap to zoom · green = correct · red = wrong · yellow box = check</Text>
+        <Text style={[type.caption, { marginTop: 6, textAlign: 'center' }]}>Pinch or double-tap to zoom · green = correct · red = wrong · amber box = check</Text>
 
         <SectionTitle
           right={
@@ -155,12 +155,12 @@ export default function SheetDetail() {
                 setDraft(q.marked);
                 setEditing(q);
               }}
-              style={[styles.cell, { borderColor: q.flags.length ? colors.accent : colors.border }]}
+              style={[styles.cell, q.flags.length ? { borderColor: colors.warning, borderWidth: 2 } : { borderColor: colors.border }]}
             >
               <Text style={styles.cellNum}>{q.label}</Text>
               <Text style={[styles.cellAns, { color: RESULT_COLORS[q.result] }]}>{q.marked.join('') || '–'}</Text>
               {q.result !== 'correct' && q.key.length > 0 && <Text style={styles.cellKey}>{q.key.join('/')}</Text>}
-              {q.overridden && <Ionicons name="hand-left" size={10} color={colors.info} style={{ position: 'absolute', top: 4, right: 4 }} />}
+              {q.overridden && <Icon name="hand-left" size={10} color={colors.info} style={{ position: 'absolute', top: 4, right: 4 }} />}
             </Pressable>
           ))}
         </View>
@@ -191,7 +191,7 @@ export default function SheetDetail() {
                     onPress={() => setDraft((d) => (d.includes(o) ? d.filter((x) => x !== o) : [...d, o]))}
                     style={[styles.opt, on && { backgroundColor: colors.accent, borderColor: colors.accent }]}
                   >
-                    <Text style={{ fontSize: 18, fontWeight: '800', color: on ? colors.accentText : colors.text }}>{o}</Text>
+                    <Text style={{ fontSize: 18, fontWeight: '700', color: on ? colors.accentText : colors.text }}>{o}</Text>
                   </Pressable>
                 );
               })}
@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   cellNum: { position: 'absolute', top: 3, left: 5, fontSize: 10, color: colors.textFaint, fontWeight: '700' },
-  cellAns: { fontSize: 18, fontWeight: '900' },
+  cellAns: { fontSize: 18, fontWeight: '700' },
   cellKey: { fontSize: 10, color: colors.success, fontWeight: '700' },
   filter: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: radius.pill },
   region: { height: 60, backgroundColor: '#fff', borderRadius: radius.sm, marginTop: 4 },

@@ -63,10 +63,10 @@ export default function SettingsScreen() {
             ]}
           />
           <Text style={[type.caption, { marginTop: 8 }]}>
-            Automatic grades printed Scantron sheets on the phone (offline, instant) and sends other sheet types, such as KNUST sheets, to the server.
+            Automatic grades on the phone whenever the sheet type is available offline (printed Scantron sheets, and KNUST sheets after their one-time download), and uses the server otherwise.
           </Text>
           <View style={{ height: space.md }} />
-          <Toggle label="Live scan" hint="Show marks and score on the camera before capturing (Scantron sheets)." value={s.liveScan} onChange={(liveScan) => updateSettings({ liveScan })} />
+          <Toggle label="Live scan" hint="Show marks and the score on the camera before you capture." value={s.liveScan} onChange={(liveScan) => updateSettings({ liveScan })} />
           <Toggle label="Auto-capture" hint="Capture automatically when the reading is stable." value={s.autoCapture} onChange={(autoCapture) => updateSettings({ autoCapture })} />
           <Toggle label="Haptics" hint="Vibrate on capture and results." value={s.haptics} onChange={(haptics) => updateSettings({ haptics })} />
         </Card>

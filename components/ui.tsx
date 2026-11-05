@@ -1,4 +1,3 @@
-import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import React, { createContext, useCallback, useContext, useRef, useState } from 'react';
@@ -16,10 +15,11 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { Icon, type IconName } from '@/components/Icon';
 import { getSettings } from '@/lib/settings';
 import { colors, radius, space, type } from '@/lib/theme';
 
-export type IconName = React.ComponentProps<typeof Ionicons>['name'];
+export type { IconName };
 
 export function tap(style: 'light' | 'medium' | 'success' | 'warning' | 'error' = 'light') {
   if (!getSettings().haptics) return;
@@ -58,7 +58,7 @@ export function Screen({
             <View style={{ width: 4 }} />
           )}
           <View style={{ flex: 1, marginHorizontal: space.sm }}>
-            <Text style={type.heading} numberOfLines={1}>
+            <Text style={[type.heading, { fontSize: 18 }]} numberOfLines={1}>
               {title}
             </Text>
             {!!subtitle && (
@@ -101,7 +101,7 @@ export function IconButton({
       hitSlop={8}
       style={({ pressed }) => [styles.iconBtn, pressed && { backgroundColor: colors.surface2 }, disabled && { opacity: 0.4 }, style]}
     >
-      <Ionicons name={icon} size={size} color={color} />
+      <Icon name={icon} size={size} color={color} />
     </Pressable>
   );
 }
@@ -129,7 +129,7 @@ export function Button({
   style?: StyleProp<ViewStyle>;
   compact?: boolean;
 }) {
-  const bg = { primary: colors.accent, secondary: colors.surface2, ghost: 'transparent', danger: colors.dangerSoft }[variant];
+  const bg = { primary: colors.accent, secondary: colors.surface, ghost: 'transparent', danger: colors.dangerSoft }[variant];
   const fg = { primary: colors.accentText, secondary: colors.text, ghost: colors.accent, danger: colors.danger }[variant];
   return (
     <Pressable
@@ -143,7 +143,7 @@ export function Button({
         styles.btn,
         compact && styles.btnCompact,
         { backgroundColor: bg, borderColor: variant === 'secondary' ? colors.border : 'transparent' },
-        pressed && { opacity: 0.8, transform: [{ scale: 0.985 }] },
+        pressed && { opacity: 0.85 },
         (disabled || loading) && { opacity: 0.45 },
         style,
       ]}
@@ -152,7 +152,7 @@ export function Button({
         <ActivityIndicator color={fg} />
       ) : (
         <>
-          {icon && <Ionicons name={icon} size={compact ? 16 : 19} color={fg} style={{ marginRight: 8 }} />}
+          {icon && <Icon name={icon} size={compact ? 16 : 18} color={fg} style={{ marginRight: 8 }} />}
           <Text style={[styles.btnText, compact && { fontSize: 14 }, { color: fg }]}>{title}</Text>
         </>
       )}
@@ -204,7 +204,7 @@ export function Segmented<T extends string>({
               tap();
               onChange(o.value);
             }}
-            style={[styles.segment, active && { backgroundColor: colors.surface3 }]}
+            style={[styles.segment, active && styles.segmentActive]}
             accessibilityRole="button"
             accessibilityState={{ selected: active }}
           >
@@ -232,8 +232,8 @@ export function Card({ children, style, onPress }: { children: React.ReactNode; 
 export function Badge({ text, color = colors.textMuted, bg = colors.surface2, icon }: { text: string; color?: string; bg?: string; icon?: IconName }) {
   return (
     <View style={[styles.badge, { backgroundColor: bg }]}>
-      {icon && <Ionicons name={icon} size={12} color={color} style={{ marginRight: 4 }} />}
-      <Text style={{ color, fontSize: 12, fontWeight: '700' }}>{text}</Text>
+      {icon && <Icon name={icon} size={12} color={color} style={{ marginRight: 4 }} />}
+      <Text style={{ color, fontSize: 12, fontWeight: '600' }}>{text}</Text>
     </View>
   );
 }
@@ -253,7 +253,7 @@ export function EmptyState({ icon, title, body, action }: { icon: IconName; titl
   return (
     <View style={styles.empty}>
       <View style={styles.emptyIcon}>
-        <Ionicons name={icon} size={34} color={colors.accent} />
+        <Icon name={icon} size={30} color={colors.textMuted} />
       </View>
       <Text style={[type.heading, { textAlign: 'center' }]}>{title}</Text>
       <Text style={[type.bodyMuted, { textAlign: 'center', marginTop: 6, marginBottom: space.lg }]}>{body}</Text>
@@ -267,7 +267,7 @@ export function Notice({ tone = 'info', text, icon }: { tone?: 'info' | 'warning
   const ic: IconName = icon ?? ({ info: 'information-circle', warning: 'warning', danger: 'alert-circle', success: 'checkmark-circle' } as const)[tone];
   return (
     <View style={[styles.notice, { backgroundColor: c[1] }]}>
-      <Ionicons name={ic} size={18} color={c[0]} style={{ marginRight: 8, marginTop: 1 }} />
+      <Icon name={ic} size={17} color={c[0]} style={{ marginRight: 10, marginTop: 2 }} />
       <Text style={{ color: colors.text, flex: 1, fontSize: 14, lineHeight: 20 }}>{text}</Text>
     </View>
   );
@@ -317,7 +317,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             { opacity: anim, transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [-20, 0] }) }] },
           ]}
         >
-          <Text style={{ color: colors.text, fontSize: 14, fontWeight: '600' }}>{toast.text}</Text>
+          <Text style={{ color: '#FFFFFF', fontSize: 14, fontWeight: '500' }}>{toast.text}</Text>
         </Animated.View>
       )}
     </ToastCtx.Provider>
@@ -330,8 +330,16 @@ export function useToast() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: space.sm, paddingVertical: space.sm, minHeight: 52 },
-  iconBtn: { width: 40, height: 40, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: space.sm,
+    paddingVertical: space.sm,
+    minHeight: 56,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
+  },
+  iconBtn: { width: 40, height: 40, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
   btn: {
     minHeight: 50,
     borderRadius: radius.md,
@@ -341,8 +349,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1,
   },
-  btnCompact: { minHeight: 38, paddingHorizontal: space.md, borderRadius: radius.sm },
-  btnText: { fontSize: 16, fontWeight: '700' },
+  btnCompact: { minHeight: 40, paddingHorizontal: space.md, borderRadius: radius.sm },
+  btnText: { fontSize: 16, fontWeight: '600' },
   input: {
     backgroundColor: colors.surface,
     borderWidth: 1,
@@ -353,27 +361,35 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.text,
   },
-  segmented: { flexDirection: 'row', backgroundColor: colors.surface, borderRadius: radius.md, padding: 4, borderWidth: 1, borderColor: colors.border },
+  segmented: { flexDirection: 'row', backgroundColor: colors.surface2, borderRadius: radius.md, padding: 3 },
   segment: { flex: 1, paddingVertical: 9, alignItems: 'center', borderRadius: radius.sm },
-  card: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: space.lg, borderWidth: 1, borderColor: colors.border },
-  badge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 3, borderRadius: radius.pill, alignSelf: 'flex-start' },
+  segmentActive: { backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
+  card: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: space.lg, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
+  badge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 3, borderRadius: radius.sm, alignSelf: 'flex-start' },
   stat: { flex: 1, alignItems: 'flex-start' },
   empty: { alignItems: 'center', paddingHorizontal: space.xl, paddingVertical: space.xxl },
-  emptyIcon: { width: 72, height: 72, borderRadius: 36, backgroundColor: colors.accentSoft, alignItems: 'center', justifyContent: 'center', marginBottom: space.lg },
+  emptyIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: space.lg,
+  },
   notice: { flexDirection: 'row', padding: space.md, borderRadius: radius.md, alignItems: 'flex-start' },
   section: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: space.xl, marginBottom: space.sm },
   toast: {
     position: 'absolute',
     left: space.lg,
     right: space.lg,
-    backgroundColor: colors.surface2,
+    backgroundColor: '#24221E',
     borderRadius: radius.md,
     paddingVertical: 14,
     paddingHorizontal: space.lg,
     borderLeftWidth: 4,
-    shadowColor: '#000',
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
-    elevation: 8,
+    elevation: 6,
   },
 });

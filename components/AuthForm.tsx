@@ -1,12 +1,12 @@
-import { Ionicons } from '@expo/vector-icons';
 import { Link } from 'expo-router';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import Logo from '@/components/Logo';
 import { Button, Field, Notice } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
-import { colors, radius, space, type } from '@/lib/theme';
+import { colors, space, type } from '@/lib/theme';
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -44,7 +44,7 @@ export default function AuthForm({ mode }: { mode: 'login' | 'register' }) {
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.wrap} keyboardShouldPersistTaps="handled">
           <View style={styles.logo}>
-            <Ionicons name="scan" size={34} color={colors.accentText} />
+            <Logo size={64} />
           </View>
           <Text style={[type.display, { textAlign: 'center' }]}>{isLogin ? 'Welcome back' : 'Create account'}</Text>
           <Text style={[type.bodyMuted, { textAlign: 'center', marginTop: 6, marginBottom: space.xxl }]}>
@@ -70,7 +70,7 @@ export default function AuthForm({ mode }: { mode: 'login' | 'register' }) {
 
           <View style={styles.row}>
             <Text style={type.bodyMuted}>{isLogin ? "Don't have an account? " : 'Already have an account? '}</Text>
-            <Link href={isLogin ? '/register' : '/login'} replace style={{ color: colors.accent, fontWeight: '700' }}>
+            <Link href={isLogin ? '/register' : '/login'} replace style={{ color: colors.accent, fontWeight: '600' }}>
               {isLogin ? 'Register' : 'Sign in'}
             </Link>
           </View>
@@ -86,16 +86,7 @@ export default function AuthForm({ mode }: { mode: 'login' | 'register' }) {
 
 const styles = StyleSheet.create({
   wrap: { padding: space.xl, paddingTop: space.xxl * 1.5, flexGrow: 1 },
-  logo: {
-    width: 68,
-    height: 68,
-    borderRadius: radius.xl,
-    backgroundColor: colors.accent,
-    alignSelf: 'center',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: space.xl,
-  },
+  logo: { alignSelf: 'center', marginBottom: space.xl },
   row: { flexDirection: 'row', justifyContent: 'center', marginTop: space.xl },
   divider: { height: 1, backgroundColor: colors.border, marginVertical: space.xl },
 });

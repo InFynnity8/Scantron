@@ -114,7 +114,7 @@ function LiveOverlay({
 
   return (
     <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
-      <Polygon points={corners.join(' ')} stroke={colors.accent} strokeWidth={3} fill="rgba(255,214,0,0.05)" />
+      <Polygon points={corners.join(' ')} stroke={colors.camGuide} strokeWidth={2.5} fill="rgba(255,255,255,0.04)" />
       {circles}
     </Svg>
   );

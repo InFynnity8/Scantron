@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   chipOn: { backgroundColor: colors.accent, borderColor: colors.accent },
-  chipText: { color: colors.textMuted, fontWeight: '800', fontSize: 15 },
+  chipText: { color: colors.textMuted, fontWeight: '600', fontSize: 15 },
   footer: {
     position: 'absolute',
     left: 0,

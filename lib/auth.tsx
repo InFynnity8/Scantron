@@ -1,7 +1,28 @@
 import * as SecureStore from 'expo-secure-store';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { Platform } from 'react-native';
 
 import { login as apiLogin, register as apiRegister, setAuthToken, setUnauthorizedHandler } from './api';
+
+/** Keychain / Keystore on phones; localStorage on web (development previews only). Never throws on read. */
+const secure = {
+  get: async (k: string): Promise<string | null> => {
+    try {
+      return Platform.OS === 'web' ? globalThis.localStorage?.getItem(k) ?? null : await SecureStore.getItemAsync(k);
+    } catch {
+      return null;
+    }
+  },
+  set: async (k: string, v: string) => (Platform.OS === 'web' ? globalThis.localStorage?.setItem(k, v) : SecureStore.setItemAsync(k, v)),
+  del: async (k: string) => {
+    try {
+      if (Platform.OS === 'web') globalThis.localStorage?.removeItem(k);
+      else await SecureStore.deleteItemAsync(k);
+    } catch {
+      // nothing stored
+    }
+  },
+};
 
 interface Session {
   token: string | null;
@@ -35,21 +56,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session>({ token: null, email: null, guest: false });
 
   const signOut = useCallback(async () => {
-    await Promise.all(['token', 'email', 'guest'].map((k) => SecureStore.deleteItemAsync(k)));
+    await Promise.all(['token', 'email', 'guest'].map((k) => secure.del(k)));
     setAuthToken(null);
     setSession({ token: null, email: null, guest: false });
   }, []);
 
   useEffect(() => {
     (async () => {
-      const [token, email, guest] = await Promise.all(['token', 'email', 'guest'].map((k) => SecureStore.getItemAsync(k)));
+      const [token, email, guest] = await Promise.all(['token', 'email', 'guest'].map((k) => secure.get(k)));
       if (token && !tokenExpired(token)) {
         setAuthToken(token);
         setSession({ token, email, guest: false });
       } else if (guest === '1') {
         setSession({ token: null, email: null, guest: true });
       } else if (token) {
-        await SecureStore.deleteItemAsync('token');
+        await secure.del('token');
       }
       setReady(true);
     })();
@@ -64,9 +85,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = useCallback(async (email: string, password: string) => {
     const user = await apiLogin(email.trim().toLowerCase(), password);
-    await SecureStore.setItemAsync('token', user.token);
-    await SecureStore.setItemAsync('email', user.email);
-    await SecureStore.deleteItemAsync('guest');
+    await secure.set('token', user.token);
+    await secure.set('email', user.email);
+    await secure.del('guest');
     setAuthToken(user.token);
     setSession({ token: user.token, email: user.email, guest: false });
   }, []);
@@ -80,7 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const continueAsGuest = useCallback(async () => {
-    await SecureStore.setItemAsync('guest', '1');
+    await secure.set('guest', '1');
     setSession({ token: null, email: null, guest: true });
   }, []);
 

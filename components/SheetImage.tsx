@@ -58,7 +58,7 @@ export default function SheetImage({ sheet, graded, height = 460 }: { sheet: She
       if (g.flags.length) {
         const p0 = map(item.centers[0].x, item.centers[0].y);
         const p1 = map(item.centers[item.centers.length - 1].x, item.centers[0].y);
-        els.push(<Rect key={`f${item.label}`} x={p0.x - r * 1.4} y={p0.y - ry * 1.4} width={p1.x - p0.x + r * 2.8} height={ry * 2.8} stroke={colors.accent} strokeWidth={2} fill="none" rx={4} />);
+        els.push(<Rect key={`f${item.label}`} x={p0.x - r * 1.4} y={p0.y - ry * 1.4} width={p1.x - p0.x + r * 2.8} height={ry * 2.8} stroke={colors.warning} strokeWidth={2} fill="none" rx={4} />);
       }
     }
     for (const f of template.fields) {

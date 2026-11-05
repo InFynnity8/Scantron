@@ -2,11 +2,11 @@
   "expo": {
     "name": "Scantron",
     "slug": "scantron",
-    "version": "2.0.0",
+    "version": "2.1.0",
     "orientation": "portrait",
-    "icon": "./assets/images/scantron.png",
+    "icon": "./assets/images/icon.png",
     "scheme": "scantron",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
@@ -19,8 +19,8 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/scantron.png",
-        "backgroundColor": "#0E1015"
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#2247C4"
       },
       "edgeToEdgeEnabled": true,
       "package": "com.anonymous.scan",
@@ -34,7 +34,7 @@
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/images/scantron.png"
+      "favicon": "./assets/images/icon.png"
     },
     "plugins": [
       [
@@ -49,10 +49,10 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/scantron.png",
-          "imageWidth": 200,
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 160,
           "resizeMode": "contain",
-          "backgroundColor": "#0E1015"
+          "backgroundColor": "#F5F2EB"
         }
       ],
       "expo-asset",
@@ -61,7 +61,7 @@
         "expo-image-picker",
         {
           "photosPermission": "Choose a photo of an answer sheet to grade.",
-          "cameraPermission": false,
+          "cameraPermission": "Scantron uses the camera to read and grade answer sheets.",
           "microphonePermission": false
         }
       ]
@@ -76,6 +76,6 @@
       }
     },
     "owner": "fynb",
-    "backgroundColor": "#0E1015"
+    "backgroundColor": "#F5F2EB"
   }
 }

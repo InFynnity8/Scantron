@@ -1,8 +1,8 @@
-import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { Icon } from '@/components/Icon';
 import { Badge, Button, Card, EmptyState, IconButton, Notice, Screen, SectionTitle, Segmented, Stat, useToast } from '@/components/ui';
 import { exportExamToExcel } from '@/lib/excel';
 import { examStats, gradeSheet } from '@/lib/grading';
@@ -180,7 +180,7 @@ function SheetRow({ sheet, pct, score, dupe, examId }: { sheet: Sheet; pct: numb
       style={({ pressed }) => [styles.sheetRow, pressed && { backgroundColor: colors.surface2 }]}
     >
       <View style={[styles.scoreDot, { borderColor: scoreColor(pct) }]}>
-        <Text style={{ color: scoreColor(pct), fontWeight: '800', fontSize: 13 }}>{pct == null ? '–' : Math.round(pct)}</Text>
+        <Text style={{ color: scoreColor(pct), fontWeight: '700', fontSize: 14 }}>{pct == null ? '–' : Math.round(pct)}</Text>
       </View>
       <View style={{ flex: 1, marginLeft: space.md }}>
         <Text style={[type.body, { fontFamily: font.mono, fontWeight: '700' }]}>{id ?? 'No index number'}</Text>
@@ -191,8 +191,8 @@ function SheetRow({ sheet, pct, score, dupe, examId }: { sheet: Sheet; pct: numb
       </View>
       {dupe && <Badge text="Duplicate" color={colors.danger} bg={colors.dangerSoft} />}
       {review && <Badge text="Review" color={colors.warning} bg={colors.warningSoft} icon="eye-outline" />}
-      {!review && (sheet.reviewed || Object.keys(sheet.overrides).length > 0) && <Ionicons name="checkmark-circle" size={18} color={colors.success} />}
-      <Ionicons name="chevron-forward" size={18} color={colors.textFaint} style={{ marginLeft: 6 }} />
+      {!review && (sheet.reviewed || Object.keys(sheet.overrides).length > 0) && <Icon name="checkmark-circle" size={18} color={colors.success} />}
+      <Icon name="chevron-forward" size={18} color={colors.textFaint} style={{ marginLeft: 6 }} />
     </Pressable>
   );
 }
@@ -209,5 +209,5 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  scoreDot: { width: 44, height: 44, borderRadius: 22, borderWidth: 2.5, alignItems: 'center', justifyContent: 'center' },
+  scoreDot: { width: 44, height: 44, borderRadius: radius.md, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
 });
