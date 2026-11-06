@@ -24,7 +24,6 @@ export default function Home() {
         <View style={{ flex: 1 }}>
           <Text style={type.display}>Scantron</Text>
         </View>
-        <IconButton icon="print-outline" label="Printable sheets" onPress={() => router.push('/sheets')} />
         <IconButton icon="settings-outline" label="Settings" onPress={() => router.push('/settings')} />
       </View>
 

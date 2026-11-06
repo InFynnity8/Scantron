@@ -1,7 +1,7 @@
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useMemo, useState } from 'react';
-import { Alert, Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { useMemo, useState, useRef } from 'react';
+import { Alert, Keyboard, Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 import { Icon } from '@/components/Icon';
 import SheetImage from '@/components/SheetImage';
@@ -31,6 +31,7 @@ export default function SheetDetail() {
   const [editing, setEditing] = useState<GradedQuestion | null>(null);
   const [draft, setDraft] = useState<string[]>([]);
   const [idDraft, setIdDraft] = useState<string | null>(null);
+  const idRef = useRef<TextInput>(null);
   const [filter, setFilter] = useState<Filter>('all');
 
   const g = useMemo(() => (exam && sheet ? gradeSheet(exam, sheet) : null), [exam, sheet]);
@@ -109,7 +110,7 @@ export default function SheetDetail() {
           <View style={{ flex: 1 }}>
             <Text style={{ color: colors.text, fontFamily: font.mono, fontSize: 22, fontWeight: '700' }}>{id ?? '—'}</Text>
             <Text style={type.caption}>
-              {sheet.idOverride ? `Corrected by hand (scanned: ${sheet.studentId ?? 'none'})` : `Read with ${Math.round(sheet.studentIdConfidence * 100)}% confidence`}
+              {sheet.idOverride ? `Corrected by hand (scanned: ${sheet.studentId ?? 'none'})` : sheet.studentIdConfidence >= 0.45 ? 'Read clearly' : 'Unclear marks - please check against the sheet'}
             </Text>
           </View>
           <Button title="Edit" compact variant="secondary" icon="create-outline" onPress={() => setIdDraft(id ?? '')} />
@@ -210,14 +211,20 @@ export default function SheetDetail() {
         </Pressable>
       </Modal>
 
-      <Modal visible={idDraft !== null} transparent animationType="fade" onRequestClose={() => setIdDraft(null)}>
+      <Modal
+        visible={idDraft !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => (idDraft?.trim() ? Keyboard.dismiss() : setIdDraft(null))}
+        onShow={() => setTimeout(() => idRef.current?.focus(), 150)}
+      >
         <KeyboardAware style={styles.modalBg}>
           <View style={styles.modal}>
             <Text style={type.heading}>Index number</Text>
             <TextInput
               value={idDraft ?? ''}
               onChangeText={setIdDraft}
-              autoFocus
+              ref={idRef}
               keyboardType="number-pad"
               style={styles.idInput}
               placeholder="e.g. 3392022"

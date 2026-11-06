@@ -194,7 +194,7 @@ export default function ExamDetail() {
         ListHeaderComponent={header}
         contentContainerStyle={{ padding: space.lg, paddingBottom: 60 }}
         ItemSeparatorComponent={() => <View style={{ height: space.sm }} />}
-        ListEmptyComponent={<EmptyState icon="scan-outline" title="No sheets yet" body="Tap “Scan sheets” and point the camera at a filled answer sheet." />}
+        ListEmptyComponent={<EmptyState icon="scan-outline" title="No sheets yet" body="Tap “Start scanning” and hold your phone over a filled answer sheet." />}
         renderItem={({ item: { s, g } }) => <SheetRow sheet={s} pct={g.percentage} score={`${g.score}/${g.max}`} dupe={dupes.has(effectiveStudentId(s) ?? '')} examId={exam.id} />}
       />
     </Screen>

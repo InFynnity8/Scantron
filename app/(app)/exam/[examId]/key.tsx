@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { memo, useCallback, useEffect, useState } from 'react';
-import { Alert, FlatList, Modal, Pressable, Text, TextInput, View } from 'react-native';
+import { memo, useCallback, useEffect, useState, useRef } from 'react';
+import { Alert, FlatList, Keyboard, Modal, Pressable, Text, TextInput, View } from 'react-native';
 
 import { Button, IconButton, Notice, Screen, tap, useToast, KeyboardAware } from '@/components/ui';
 import { saveExam, useExam } from '@/lib/store';
@@ -58,6 +58,7 @@ export default function AnswerKey() {
   const [dirty, setDirty] = useState(false);
   const [typing, setTyping] = useState(false);
   const [typed, setTyped] = useState('');
+  const typedRef = useRef<TextInput>(null);
 
   // A key read from a scanned sheet arrives via route param.
   useEffect(() => {
@@ -146,7 +147,15 @@ export default function AnswerKey() {
         <Button title={`Save key (${done}/${exam.numQuestions})`} icon="checkmark" onPress={save} style={{ flex: 2 }} />
       </View>
 
-      <Modal visible={typing} transparent animationType="fade" onRequestClose={() => setTyping(false)}>
+      <Modal
+        visible={typing}
+        transparent
+        animationType="fade"
+        // Back with text typed only hides the keyboard - it never throws the key away.
+        onRequestClose={() => (typed.trim() ? Keyboard.dismiss() : setTyping(false))}
+        // autoFocus alone does not raise the keyboard inside an Android modal.
+        onShow={() => setTimeout(() => typedRef.current?.focus(), 150)}
+      >
         <KeyboardAware style={styles.modalBg}>
           <View style={styles.modal}>
             <Text style={type.heading}>Type the answer key</Text>
@@ -158,7 +167,7 @@ export default function AnswerKey() {
               onChangeText={setTyped}
               autoCapitalize="characters"
               autoCorrect={false}
-              autoFocus
+              ref={typedRef}
               multiline
               placeholder="BEADB CCAAB …"
               placeholderTextColor={colors.textFaint}

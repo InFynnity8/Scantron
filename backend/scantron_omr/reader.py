@@ -187,6 +187,12 @@ def decide(
 
     margin = float(np.min(np.abs(f - thr))) if len(f) else 1.0
     confidence = float(np.clip(margin / CONF_SCALE, 0.0, 1.0))
+    if code_column and status == "answered" and not faint and len(f) > 1:
+        # A code column has one mark among many printed cells: what matters is how
+        # far the mark stands out from the next darkest cell, not how close some
+        # unmarked cell sits to the sheet-wide threshold.
+        top = np.sort(f)
+        confidence = float(np.clip((top[-1] - top[-2]) / (2 * CONF_SCALE), 0.0, 1.0))
     flags: list[str] = []
     if confidence < REVIEW_CONFIDENCE:
         flags.append("ambiguous")

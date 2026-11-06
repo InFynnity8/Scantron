@@ -105,79 +105,6 @@ def standard_spec(code: int, num_questions: int, options: str = "ABCDE", id_digi
     }
 
 
-# --------------------------------------------------------------------------- #
-# 200-question university sheet, laid out like the KNUST IDL answer sheet
-# --------------------------------------------------------------------------- #
-
-UNI_CODE = 8  # permanent: printed in the marker ids
-UNI_CELL = (22, 12)  # narrow option cells, like "<A>" brackets
-UNI_OPT_GAP = 30
-UNI_ROW_GAP = 18
-UNI_GROUP_GAP = 12
-UNI_COL_PITCH = 220
-UNI_ANSWERS_TOP = 752
-UNI_FIELDS_TOP = 262
-
-
-def university_spec() -> dict[str, Any]:
-    """5 columns x 40 questions in groups of 5, candidate number, course code,
-    year and semester - the KNUST IDL layout, with corner markers so it is
-    graded live and offline on the phone. No institution branding."""
-    code, m = UNI_CODE, MARKER
-    markers = [
-        {"id": 4 * code + 0, "x": MARGIN, "y": MARGIN, "size": m},
-        {"id": 4 * code + 1, "x": PAGE_W - MARGIN - m, "y": MARGIN, "size": m},
-        {"id": 4 * code + 2, "x": PAGE_W - MARGIN - m, "y": PAGE_H - MARGIN - m, "size": m},
-        {"id": 4 * code + 3, "x": MARGIN, "y": PAGE_H - MARGIN - m, "size": m},
-    ]
-    y0 = UNI_FIELDS_TOP
-    blocks: list[dict[str, Any]] = [
-        {"type": "id", "name": "Candidate number", "label": "Candidate number", "origin": [112, y0], "count": 7,
-         "options": "digits", "option_gap": 19, "item_gap": 34, "allow_trailing_blank": False},
-        {"type": "field", "field": "course_code", "label": "Course code", "name": "Course code letters",
-         "origin": [430, y0], "count": 5, "options": "letters", "option_gap": 16.6, "item_gap": 34,
-         "allow_blank": True, "allow_trailing_blank": False},
-        {"type": "field", "field": "course_code", "label": "Course code", "name": "Course code digits",
-         "origin": [600, y0], "count": 3, "options": "digits", "option_gap": 19, "item_gap": 34},
-        {"type": "field", "field": "year_of_student", "label": "Year", "name": "Year of student",
-         "origin": [800, y0], "count": 1, "options": "1234567", "option_gap": 19, "item_gap": 1},
-        {"type": "field", "field": "semester", "label": "Semester", "name": "Semester",
-         "origin": [930, y0], "count": 1, "options": "12", "option_gap": 19, "item_gap": 1},
-    ]
-    total_w = 4 * UNI_COL_PITCH + 40 + 4 * UNI_OPT_GAP + UNI_CELL[0]
-    first_x = (PAGE_W - total_w) / 2 + 40 + UNI_CELL[0] / 2
-    group_pitch = 5 * UNI_ROW_GAP + UNI_GROUP_GAP
-    for c in range(5):
-        for g in range(8):
-            first = c * 40 + g * 5 + 1
-            blocks.append(
-                {"type": "mcq", "name": f"Q{first}-{first + 4}",
-                 "origin": [round(first_x + c * UNI_COL_PITCH, 2), UNI_ANSWERS_TOP + g * group_pitch],
-                 "first": first, "count": 5, "options": "ABCDE",
-                 "option_gap": UNI_OPT_GAP, "item_gap": UNI_ROW_GAP}
-            )
-    return {
-        "id": "uni-200",
-        "name": "KNUST layout (printable, 200 questions)",
-        "description": "Print it yourself: same layout as the KNUST IDL sheet - 200 questions in 5 columns, "
-        "candidate number, course code, year and semester. Graded live and offline.",
-        "printable": True,
-        "page": {"width": PAGE_W, "height": PAGE_H},
-        "bubble_radius": UNI_CELL[1] / 2,
-        "bubble_size": list(UNI_CELL),
-        "alignment": {"type": "aruco", "dictionary": "DICT_4X4_100", "markers": markers},
-        "blocks": blocks,
-        "regions": [{"name": "name", "label": "Name", "bbox": [130, 96, 760, 150]}],
-        "print": {
-            "lines": [["Name", 140, 140, 760], ["Date", 800, 140, 1090]],
-            "instructions": None,
-            "group_boxes": True,
-            "subtitle": "200 questions  -  sheet uni-200",
-            "footer": "Use an HB pencil · fill the option completely · erase cleanly · keep the four corner squares visible",
-        },
-    }
-
-
 # code -> (questions, options). Codes are permanent: they are printed on sheets.
 _BUILTIN: dict[int, tuple[int, str]] = {
     0: (20, "ABCDE"),
@@ -230,7 +157,6 @@ def default_registry(extra_dir: str | Path | None = None) -> TemplateRegistry:
     reg = TemplateRegistry()
     for code, (n, opts) in sorted(_BUILTIN.items(), key=lambda kv: kv[1]):
         reg.add(template_from_spec(standard_spec(code, n, opts)))
-    reg.add(template_from_spec(university_spec()))
     reg.load_dir(Path(__file__).resolve().parent.parent / "templates")
     if extra_dir:
         reg.load_dir(extra_dir)

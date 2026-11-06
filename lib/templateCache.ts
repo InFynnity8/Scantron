@@ -16,6 +16,8 @@ import { getSettings, trimUrl } from './settings';
 
 const DIR = `${FileSystem.documentDirectory}templates/`;
 const cached = new Set<string>();
+/** specs of downloaded templates, so their sheet type can be offered offline */
+const specs = new Map<string, TemplateSpec>();
 const loaded = new Map<string, { template: CompiledTemplate; reference: GrayImage }>();
 const listeners = new Set<() => void>();
 let version = 0;
@@ -34,13 +36,30 @@ export async function loadTemplateCache(): Promise<void> {
   const ids = await FileSystem.readDirectoryAsync(DIR).catch(() => [] as string[]);
   for (const id of ids) {
     const info = await FileSystem.getInfoAsync(`${DIR}${id}/reference.jpg`);
-    if (info.exists) cached.add(id);
+    if (info.exists) {
+      cached.add(id);
+      try {
+        specs.set(id, JSON.parse(await FileSystem.readAsStringAsync(`${DIR}${id}/spec.json`)));
+      } catch {
+        // spec unreadable - re-downloaded on next use
+      }
+    }
   }
   bump();
 }
 
 export function isCached(id: string): boolean {
   return cached.has(id);
+}
+
+/** Downloaded (offline-ready) template specs. */
+export function cachedSpecs(): TemplateSpec[] {
+  return [...specs.values()];
+}
+
+/** Local file of a downloaded template's blank sheet (for previews offline). */
+export function cachedReferenceUri(id: string): string | null {
+  return cached.has(id) ? `${DIR}${id}/reference.jpg` : null;
 }
 
 /** Download spec + reference so the sheet can be graded offline. Returns false if not supported on-device. */
@@ -58,6 +77,7 @@ export async function downloadTemplate(id: string): Promise<boolean> {
   await FileSystem.moveAsync({ from: tmp, to: `${dir}reference.jpg` });
   loaded.delete(id);
   cached.add(id);
+  specs.set(id, spec);
   bump();
   return true;
 }

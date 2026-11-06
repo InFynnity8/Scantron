@@ -179,7 +179,13 @@ export function decide(item: Item, fills: number[], stats: SheetStats, codeColum
   const marked = item.options.filter((_, i) => fills[i] >= thr);
   const status: Status = marked.length === 0 ? 'blank' : marked.length === 1 ? 'answered' : 'multiple';
   const margin = Math.min(...fills.map((f) => Math.abs(f - thr)));
-  const confidence = Math.min(1, Math.max(0, margin / CONF_SCALE));
+  let confidence = Math.min(1, Math.max(0, margin / CONF_SCALE));
+  if (codeColumn && status === 'answered' && !faint && fills.length > 1) {
+    // A code column has one mark among many printed cells: what matters is how far
+    // the mark stands out from the next darkest cell (see reader.py).
+    const top = [...fills].sort((x, y) => y - x);
+    confidence = Math.min(1, Math.max(0, (top[0] - top[1]) / (2 * CONF_SCALE)));
+  }
   const flags: string[] = [];
   if (confidence < REVIEW_CONFIDENCE) flags.push('ambiguous');
   if (fills.some((f) => f < thr && f >= stats.floor)) flags.push('possible_erasure');

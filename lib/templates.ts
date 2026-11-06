@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 import { fetchTemplates, type TemplateSummary } from './api';
 import { BUILTIN_TEMPLATES } from './omr/generated';
 import { getTemplate } from './omr/engine';
+import type { TemplateSpec } from './omr/types';
+import { cachedSpecs } from './templateCache';
 
 export interface TemplateOption {
   id: string;
@@ -29,11 +31,11 @@ export const AUTO_TEMPLATE: TemplateOption = {
 };
 
 /**
- * Sheet types offered in the app: the KNUST IDL sheet (server template) and the
- * printable KNUST-layout sheet. The older standard sheets and auto-detect stay
- * in the engine so existing exams keep working, but are no longer offered.
+ * The only sheet type offered is the KNUST IDL answer sheet (server template,
+ * downloaded once for offline use). The older printable sheets and auto-detect
+ * stay in the engine so existing exams keep working, but are no longer offered.
  */
-const OFFERED = (id: string) => id.startsWith('uni-') || id.startsWith('knust-');
+const OFFERED = (id: string) => id.startsWith('knust-');
 
 function builtinOptions(all = false): TemplateOption[] {
   return BUILTIN_TEMPLATES.filter((t) => all || OFFERED(t.id)).map((t) => {
@@ -53,6 +55,22 @@ function builtinOptions(all = false): TemplateOption[] {
   });
 }
 
+/** A downloaded template, offered even with no connection. */
+function fromCache(t: TemplateSpec): TemplateOption {
+  const c = getTemplate(t);
+  return {
+    id: t.id,
+    name: t.name,
+    description: t.description ?? '',
+    numQuestions: c.questions.length,
+    options: c.questions[0]?.options ?? ['A', 'B', 'C', 'D', 'E'],
+    idDigits: c.fields.find((f) => f.name === 'index_number')?.columns.length ?? 0,
+    printable: false,
+    offline: true,
+    downloadable: true,
+  };
+}
+
 function fromServer(t: TemplateSummary): TemplateOption {
   return {
     id: t.id,
@@ -68,8 +86,7 @@ function fromServer(t: TemplateSummary): TemplateOption {
 }
 
 /**
- * KNUST IDL (server template, downloaded once for offline use) and the printable
- * KNUST-layout sheet. `keepId` keeps an existing exam's older sheet type selectable.
+ * The KNUST IDL sheet. `keepId` keeps an existing exam's older sheet type selectable.
  */
 export function useTemplateOptions(keepId?: string): { options: TemplateOption[]; loading: boolean; error: string | null } {
   const [server, setServer] = useState<TemplateOption[]>([]);
@@ -87,8 +104,12 @@ export function useTemplateOptions(keepId?: string): { options: TemplateOption[]
   }, []);
   const builtins = builtinOptions();
   const ids = new Set(builtins.map((b) => b.id));
-  const extra = server.filter((s) => !ids.has(s.id) && OFFERED(s.id));
-  const options = [...extra, ...builtins];
+  const fromNet = server.filter((s) => !ids.has(s.id) && OFFERED(s.id));
+  // Downloaded sheets are always available, online or not.
+  const offline = cachedSpecs()
+    .filter((t) => OFFERED(t.id) && !fromNet.some((s) => s.id === t.id))
+    .map(fromCache);
+  const options = [...fromNet, ...offline, ...builtins];
   if (keepId && !options.some((o) => o.id === keepId)) {
     const old = keepId === 'auto' ? AUTO_TEMPLATE : [...builtinOptions(true), ...server].find((o) => o.id === keepId);
     if (old) options.push(old);

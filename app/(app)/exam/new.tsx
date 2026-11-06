@@ -7,7 +7,7 @@ import { Badge, Button, Field, Notice, Screen, SectionTitle, Segmented, useToast
 import { sheetPreviewUrl } from '@/lib/api';
 import { DEFAULT_SCORING, type Exam } from '@/lib/models';
 import { getExam, saveExam, uid } from '@/lib/store';
-import { downloadTemplate, isCached } from '@/lib/templateCache';
+import { cachedReferenceUri, downloadTemplate, isCached } from '@/lib/templateCache';
 import { useTemplateOptions } from '@/lib/templates';
 import { colors, radius, space, themed, type, useColorScheme } from '@/lib/theme';
 
@@ -81,10 +81,10 @@ export default function NewExam() {
           <Field label="Course code" value={course} onChangeText={setCourse} placeholder="e.g. COE 456" autoCapitalize="characters" />
 
           <SectionTitle>Answer sheet</SectionTitle>
-          {loading && options.length <= 1 && <ActivityIndicator color={colors.accent} />}
-          {!!error && (
+          {loading && !options.length && <ActivityIndicator color={colors.accent} />}
+          {!!error && !options.length && (
             <View style={{ marginBottom: space.md }}>
-              <Notice tone="info" text="Offline - showing the printable KNUST-layout sheet. The KNUST IDL sheet appears when you're online." />
+              <Notice tone="info" text="You're offline. Connect once to load the KNUST IDL sheet; after that it works without internet." />
             </View>
           )}
           {!!errors.template && <Text style={{ color: colors.danger, marginBottom: 8 }}>{errors.template}</Text>}
@@ -103,7 +103,7 @@ export default function NewExam() {
                     {o.id === 'auto' ? (
                       <Icon name="scan" size={22} color={colors.textFaint} />
                     ) : (
-                      <Image source={{ uri: sheetPreviewUrl(o.id, o.printable) }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+                      <Image source={{ uri: cachedReferenceUri(o.id) ?? sheetPreviewUrl(o.id, o.printable) }} style={StyleSheet.absoluteFill} resizeMode="cover" />
                     )}
                   </View>
                   <View style={{ flex: 1, marginLeft: space.md }}>
@@ -113,7 +113,7 @@ export default function NewExam() {
                     </View>
                     {!!o.description && <Text style={type.caption}>{o.description}</Text>}
                     <View style={{ flexDirection: 'row', gap: 6, marginTop: 6 }}>
-                      {o.offline ? (
+                      {o.offline || isCached(o.id) ? (
                         <Badge text="Works offline · live scan" color={colors.success} bg={colors.successSoft} icon="flash" />
                       ) : o.downloadable ? (
                         <Badge text="Offline after first download" color={colors.success} bg={colors.successSoft} icon="download-outline" />
