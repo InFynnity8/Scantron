@@ -21,7 +21,7 @@ export interface TemplateOption {
 export const AUTO_TEMPLATE: TemplateOption = {
   id: 'auto',
   name: 'Any other sheet (auto-detect)',
-  description: 'Finds bubbles on any simple MCQ sheet. Needs internet; no index number.',
+  description: 'For a different paper layout: finds the bubbles on any simple multiple-choice sheet. Needs internet; no index number.',
   numQuestions: 100,
   options: ['A', 'B', 'C', 'D', 'E'],
   idDigits: 0,
@@ -31,9 +31,9 @@ export const AUTO_TEMPLATE: TemplateOption = {
 };
 
 /**
- * The only sheet type offered is the KNUST IDL answer sheet (server template,
- * downloaded once for offline use). The older printable sheets and auto-detect
- * stay in the engine so existing exams keep working, but are no longer offered.
+ * Sheet types offered: the KNUST IDL answer sheet (server template, downloaded
+ * once for offline use) and auto-detect for any other simple MCQ sheet. The
+ * older printable sheets stay in the engine so existing exams keep working.
  */
 const OFFERED = (id: string) => id.startsWith('knust-');
 
@@ -86,7 +86,7 @@ function fromServer(t: TemplateSummary): TemplateOption {
 }
 
 /**
- * The KNUST IDL sheet. `keepId` keeps an existing exam's older sheet type selectable.
+ * The KNUST IDL sheet, then auto-detect. `keepId` keeps an existing exam's older sheet type selectable.
  */
 export function useTemplateOptions(keepId?: string): { options: TemplateOption[]; loading: boolean; error: string | null } {
   const [server, setServer] = useState<TemplateOption[]>([]);
@@ -109,9 +109,9 @@ export function useTemplateOptions(keepId?: string): { options: TemplateOption[]
   const offline = cachedSpecs()
     .filter((t) => OFFERED(t.id) && !fromNet.some((s) => s.id === t.id))
     .map(fromCache);
-  const options = [...fromNet, ...offline, ...builtins];
+  const options = [...fromNet, ...offline, ...builtins, AUTO_TEMPLATE];
   if (keepId && !options.some((o) => o.id === keepId)) {
-    const old = keepId === 'auto' ? AUTO_TEMPLATE : [...builtinOptions(true), ...server].find((o) => o.id === keepId);
+    const old = [...builtinOptions(true), ...server].find((o) => o.id === keepId);
     if (old) options.push(old);
   }
   return { options, loading, error };

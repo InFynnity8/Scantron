@@ -29,8 +29,11 @@ export default function NewExam() {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const tpl = useMemo(() => options.find((o) => o.id === templateId), [options, templateId]);
+  const hasKnust = options.some((o) => o.id.startsWith('knust-'));
   useEffect(() => {
-    if (!templateId && options.length) setTemplateId(options[0].id);
+    // Preselect the KNUST IDL sheet (not auto-detect) once it is available.
+    const knust = options.find((o) => o.id.startsWith('knust-'));
+    if (!templateId && knust) setTemplateId(knust.id);
   }, [options, templateId]);
   useEffect(() => {
     if (tpl && !editing && (!count || Number(count) > tpl.numQuestions)) setCount(String(Math.min(tpl.numQuestions, 40)));
@@ -81,8 +84,8 @@ export default function NewExam() {
           <Field label="Course code" value={course} onChangeText={setCourse} placeholder="e.g. COE 456" autoCapitalize="characters" />
 
           <SectionTitle>Answer sheet</SectionTitle>
-          {loading && !options.length && <ActivityIndicator color={colors.accent} />}
-          {!!error && !options.length && (
+          {loading && !hasKnust && <ActivityIndicator color={colors.accent} />}
+          {!!error && !hasKnust && (
             <View style={{ marginBottom: space.md }}>
               <Notice tone="info" text="You're offline. Connect once to load the KNUST IDL sheet; after that it works without internet." />
             </View>
