@@ -920,8 +920,8 @@ export const BUILTIN_TEMPLATES: TemplateSpec[] = [
   },
   {
     "id": "uni-200",
-    "name": "University 200 questions (KNUST layout)",
-    "description": "Same layout as the KNUST IDL sheet: 200 questions in 5 columns, candidate number, course code, year and semester. Graded live and offline.",
+    "name": "KNUST layout (printable, 200 questions)",
+    "description": "Print it yourself: same layout as the KNUST IDL sheet - 200 questions in 5 columns, candidate number, course code, year and semester. Graded live and offline.",
     "printable": true,
     "page": {
       "width": 1240,
@@ -1585,6 +1585,7 @@ export const BUILTIN_TEMPLATES: TemplateSpec[] = [
       ],
       "instructions": null,
       "group_boxes": true,
+      "subtitle": "200 questions  -  sheet uni-200",
       "footer": "Use an HB pencil \u00b7 fill the option completely \u00b7 erase cleanly \u00b7 keep the four corner squares visible"
     }
   }

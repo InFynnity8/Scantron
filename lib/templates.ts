@@ -28,10 +28,15 @@ export const AUTO_TEMPLATE: TemplateOption = {
   downloadable: false,
 };
 
-function builtinOptions(): TemplateOption[] {
-  // University (KNUST-layout) sheet first, then the standard sheets by size.
-  const ordered = [...BUILTIN_TEMPLATES].sort((a, b) => Number(b.id.startsWith('uni-')) - Number(a.id.startsWith('uni-')));
-  return ordered.map((t) => {
+/**
+ * Sheet types offered in the app: the KNUST IDL sheet (server template) and the
+ * printable KNUST-layout sheet. The older standard sheets and auto-detect stay
+ * in the engine so existing exams keep working, but are no longer offered.
+ */
+const OFFERED = (id: string) => id.startsWith('uni-') || id.startsWith('knust-');
+
+function builtinOptions(all = false): TemplateOption[] {
+  return BUILTIN_TEMPLATES.filter((t) => all || OFFERED(t.id)).map((t) => {
     const mcq = t.blocks.filter((b) => b.type === 'mcq');
     const idb = t.blocks.filter((b) => b.type === 'id');
     return {
@@ -62,8 +67,11 @@ function fromServer(t: TemplateSummary): TemplateOption {
   };
 }
 
-/** Built-in sheets (always available) + server templates (e.g. calibrated KNUST sheets) + auto. */
-export function useTemplateOptions(): { options: TemplateOption[]; loading: boolean; error: string | null } {
+/**
+ * KNUST IDL (server template, downloaded once for offline use) and the printable
+ * KNUST-layout sheet. `keepId` keeps an existing exam's older sheet type selectable.
+ */
+export function useTemplateOptions(keepId?: string): { options: TemplateOption[]; loading: boolean; error: string | null } {
   const [server, setServer] = useState<TemplateOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -79,9 +87,13 @@ export function useTemplateOptions(): { options: TemplateOption[]; loading: bool
   }, []);
   const builtins = builtinOptions();
   const ids = new Set(builtins.map((b) => b.id));
-  const extra = server.filter((s) => !ids.has(s.id));
-  // Institution sheets first - they're what most users scan.
-  return { options: [...extra, ...builtins, AUTO_TEMPLATE], loading, error };
+  const extra = server.filter((s) => !ids.has(s.id) && OFFERED(s.id));
+  const options = [...extra, ...builtins];
+  if (keepId && !options.some((o) => o.id === keepId)) {
+    const old = keepId === 'auto' ? AUTO_TEMPLATE : [...builtinOptions(true), ...server].find((o) => o.id === keepId);
+    if (old) options.push(old);
+  }
+  return { options, loading, error };
 }
 
 export function builtinTemplateOptions(): TemplateOption[] {

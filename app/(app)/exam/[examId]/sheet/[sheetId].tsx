@@ -5,7 +5,7 @@ import { Alert, Modal, Pressable, ScrollView, Text, TextInput, View } from 'reac
 
 import { Icon } from '@/components/Icon';
 import SheetImage from '@/components/SheetImage';
-import { Badge, Button, Card, IconButton, Notice, Screen, SectionTitle, Stat, tap, useToast } from '@/components/ui';
+import { Badge, Button, Card, IconButton, Notice, Screen, SectionTitle, Stat, tap, useToast, KeyboardAware } from '@/components/ui';
 import { gradeSheet, type GradedQuestion } from '@/lib/grading';
 import { effectiveStudentId } from '@/lib/models';
 import { deleteSheet, upsertSheet, useExam, useSheets } from '@/lib/store';
@@ -211,7 +211,7 @@ export default function SheetDetail() {
       </Modal>
 
       <Modal visible={idDraft !== null} transparent animationType="fade" onRequestClose={() => setIdDraft(null)}>
-        <View style={styles.modalBg}>
+        <KeyboardAware style={styles.modalBg}>
           <View style={styles.modal}>
             <Text style={type.heading}>Index number</Text>
             <TextInput
@@ -228,7 +228,7 @@ export default function SheetDetail() {
               <Button title="Save" onPress={saveId} style={{ flex: 1 }} compact />
             </View>
           </View>
-        </View>
+        </KeyboardAware>
       </Modal>
     </Screen>
   );

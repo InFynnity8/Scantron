@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Icon } from '@/components/Icon';
 import { Badge, Button, Field, Notice, Screen, SectionTitle, Segmented, useToast } from '@/components/ui';
@@ -17,7 +17,7 @@ export default function NewExam() {
   useColorScheme(); // re-render when light/dark mode changes
   const { examId } = useLocalSearchParams<{ examId?: string }>();
   const editing = examId ? getExam(examId) : undefined;
-  const { options, loading, error } = useTemplateOptions();
+  const { options, loading, error } = useTemplateOptions(editing?.templateId);
   const toast = useToast();
 
   const [title, setTitle] = useState(editing?.title ?? '');
@@ -75,7 +75,7 @@ export default function NewExam() {
 
   return (
     <Screen title={editing ? 'Edit exam' : 'New exam'}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <View style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={{ padding: space.lg, paddingBottom: 60 }} keyboardShouldPersistTaps="handled">
           <Field label="Exam name" value={title} onChangeText={setTitle} placeholder="e.g. Mid-semester quiz" error={errors.title} />
           <Field label="Course code" value={course} onChangeText={setCourse} placeholder="e.g. COE 456" autoCapitalize="characters" />
@@ -84,7 +84,7 @@ export default function NewExam() {
           {loading && options.length <= 1 && <ActivityIndicator color={colors.accent} />}
           {!!error && (
             <View style={{ marginBottom: space.md }}>
-              <Notice tone="info" text="Offline - showing the printable Scantron sheets. Institution sheets appear when you're online." />
+              <Notice tone="info" text="Offline - showing the printable KNUST-layout sheet. The KNUST IDL sheet appears when you're online." />
             </View>
           )}
           {!!errors.template && <Text style={{ color: colors.danger, marginBottom: 8 }}>{errors.template}</Text>}
@@ -151,7 +151,7 @@ export default function NewExam() {
 
           <Button title={editing ? 'Save changes' : 'Continue to answer key'} icon={editing ? 'checkmark' : 'arrow-forward'} onPress={save} style={{ marginTop: space.md }} />
         </ScrollView>
-      </KeyboardAvoidingView>
+      </View>
     </Screen>
   );
 }

@@ -4,6 +4,7 @@ import React, { createContext, useCallback, useContext, useRef, useState } from 
 import {
   ActivityIndicator,
   Animated,
+  KeyboardAvoidingView,
   Pressable,
   StyleSheet,
   Text,
@@ -32,6 +33,19 @@ export function tap(style: 'light' | 'medium' | 'success' | 'warning' | 'error' 
 }
 
 // ----------------------------------------------------------------------------- layout
+
+/**
+ * Keeps focused inputs above the keyboard. The app draws edge-to-edge on Android,
+ * where the window no longer resizes for the keyboard, so padding is applied on
+ * both platforms.
+ */
+export function KeyboardAware({ children, style }: { children: React.ReactNode; style?: StyleProp<ViewStyle> }) {
+  return (
+    <KeyboardAvoidingView behavior="padding" style={[{ flex: 1 }, style]}>
+      {children}
+    </KeyboardAvoidingView>
+  );
+}
 
 export function Screen({
   children,
@@ -70,7 +84,7 @@ export function Screen({
           {right}
         </View>
       )}
-      {children}
+      <KeyboardAware>{children}</KeyboardAware>
     </SafeAreaView>
   );
 }

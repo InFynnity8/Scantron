@@ -54,7 +54,7 @@ export default function PrintableSheets() {
               {item.numQuestions} questions{item.options.length !== 5 ? ` (${item.options[0]}–${item.options[item.options.length - 1]})` : ''}
             </Text>
             <Text style={type.caption} numberOfLines={2}>
-              {item.id.startsWith('uni-') ? 'University layout, like the KNUST sheet' : `${item.idDigits}-digit index number`}
+              {item.id.startsWith('uni-') ? 'Same layout as the KNUST IDL sheet' : `${item.idDigits}-digit index number`}
             </Text>
           </Pressable>
         )}

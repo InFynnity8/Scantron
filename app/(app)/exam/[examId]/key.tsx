@@ -2,7 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { memo, useCallback, useEffect, useState } from 'react';
 import { Alert, FlatList, Modal, Pressable, Text, TextInput, View } from 'react-native';
 
-import { Button, IconButton, Notice, Screen, tap, useToast } from '@/components/ui';
+import { Button, IconButton, Notice, Screen, tap, useToast, KeyboardAware } from '@/components/ui';
 import { saveExam, useExam } from '@/lib/store';
 import { colors, font, radius, space, themed, type, useColorScheme } from '@/lib/theme';
 
@@ -147,7 +147,7 @@ export default function AnswerKey() {
       </View>
 
       <Modal visible={typing} transparent animationType="fade" onRequestClose={() => setTyping(false)}>
-        <View style={styles.modalBg}>
+        <KeyboardAware style={styles.modalBg}>
           <View style={styles.modal}>
             <Text style={type.heading}>Type the answer key</Text>
             <Text style={[type.bodyMuted, { marginVertical: space.sm }]}>
@@ -169,7 +169,7 @@ export default function AnswerKey() {
               <Button title="Apply" onPress={applyTyped} style={{ flex: 1 }} disabled={!typed.trim()} />
             </View>
           </View>
-        </View>
+        </KeyboardAware>
       </Modal>
     </Screen>
   );

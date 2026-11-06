@@ -62,7 +62,7 @@ def render_sheet(t: Template, scale: float = 2.0, title: str | None = None) -> I
     f_title, f_lbl, f_small = _font(int(S(30)), True), _font(int(S(17))), _font(int(S(13)))
     f_opt = _font(int(S(min(12, t.ry * 1.5))), True)
     d.text((S(140), S(52)), title or "ANSWER SHEET", font=f_title, fill=ACCENT)
-    d.text((S(140), S(92)), f"{t.name}  ·  sheet {t.id}", font=f_small, fill=SOFT)
+    d.text((S(140), S(92)), cfg.get("subtitle", f"{t.name}  ·  sheet {t.id}"), font=f_small, fill=SOFT)
 
     lx0 = S(90)
     lines = cfg.get("lines") or [[lbl, 90, 205 + i * 62, 760] for i, lbl in enumerate(["Name", "Course / Exam", "Date", "Signature"])]
