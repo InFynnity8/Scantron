@@ -112,6 +112,12 @@ export function sheetPdfUrl(templateId: string, title?: string): string {
   return `${trimUrl(getSettings().omrUrl)}/v1/templates/${encodeURIComponent(templateId)}/sheet?format=pdf${q}`;
 }
 
+/** What a sheet type looks like: a printable sheet's preview, or the blank reference of an external sheet (e.g. KNUST). */
+export function sheetPreviewUrl(templateId: string, printable: boolean): string {
+  const base = `${trimUrl(getSettings().omrUrl)}/v1/templates/${encodeURIComponent(templateId)}`;
+  return printable ? `${base}/sheet?format=jpg` : `${base}/reference.jpg`;
+}
+
 export async function health(url?: string): Promise<boolean> {
   try {
     const r = await request<{ status: string }>(`${trimUrl(url ?? getSettings().omrUrl)}/health`, {}, 60000);

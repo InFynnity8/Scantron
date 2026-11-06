@@ -1,9 +1,10 @@
 import { Redirect, Stack } from 'expo-router';
 
 import { useAuth } from '@/lib/auth';
-import { colors } from '@/lib/theme';
+import { colors, useColorScheme } from '@/lib/theme';
 
 export default function AppLayout() {
+  useColorScheme(); // re-render when light/dark mode changes
   const { signedIn } = useAuth();
   if (!signedIn) return <Redirect href="/login" />;
   return (

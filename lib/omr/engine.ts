@@ -107,7 +107,8 @@ export function scanGray(img: GrayImage, opts: DeviceScanOptions = {}): ScanRead
   });
   err /= src.length;
   const a = project(H, 0, 0);
-  const b = project(H, t.radius * 2, 0);
+  // Cell size: geometric mean of the half-width and half-height (narrow "<A>" cells are 22x12).
+  const b = project(H, Math.sqrt(t.rx * t.ry) * 2, 0);
   const bubblePx = Math.hypot(b.x - a.x, b.y - a.y) / 2;
   if (err > Math.max(3, bubblePx * 0.6)) {
     throw new DeviceScanError('no_sheet', 'Sheet alignment is unstable. Hold the phone steady.');

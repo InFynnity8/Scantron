@@ -7,6 +7,7 @@ Run locally::
 
 from __future__ import annotations
 
+import io
 import json
 import logging
 import os
@@ -23,7 +24,7 @@ import scantron_omr
 from scantron_omr import AUTO, DETECT, OMREngine, ScanRequest, ScoringPolicy, TemplateNotDetectedError, default_registry
 from scantron_omr.align import SheetNotFoundError
 from scantron_omr.imageops import ImageDecodeError, decode_image
-from scantron_omr.render import sheet_bytes
+from scantron_omr.render import render_sheet, sheet_bytes
 
 log = logging.getLogger("scantron")
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"), format="%(asctime)s %(levelname)s %(name)s %(message)s")
@@ -108,14 +109,22 @@ def get_template(template_id: str) -> dict[str, Any]:
 @app.get("/v1/templates/{template_id}/sheet")
 def printable_sheet(
     template_id: str,
-    format: str = Query("pdf", pattern="^(pdf|png)$"),
+    format: str = Query("pdf", pattern="^(pdf|png|jpg)$"),
     title: str | None = Query(None, max_length=60),
 ) -> Response:
+    """Printable sheet. ``pdf``/``png`` are print quality (300 DPI A4); ``jpg`` is a
+    small preview image for the app's sheet picker."""
     t = _template(template_id)
     if not t.printable:
         raise ApiError(400, "not_printable", "This template describes an external sheet and cannot be printed.")
-    data = sheet_bytes(t, format, title)
-    media = "application/pdf" if format == "pdf" else "image/png"
+    if format == "jpg":
+        img = render_sheet(t, scale=0.6, title=title)
+        buf = io.BytesIO()
+        img.save(buf, format="JPEG", quality=82, optimize=True)
+        data, media = buf.getvalue(), "image/jpeg"
+    else:
+        data = sheet_bytes(t, format, title)
+        media = "application/pdf" if format == "pdf" else "image/png"
     return Response(
         data,
         media_type=media,

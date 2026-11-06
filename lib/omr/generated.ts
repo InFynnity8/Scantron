@@ -34,7 +34,11 @@ export const ARUCO_4X4: Record<number, string> = {
   "28": "0010000100100011",
   "29": "0011010001101111",
   "30": "0100010000010101",
-  "31": "0101011110110010"
+  "31": "0101011110110010",
+  "32": "1001111011001111",
+  "33": "1111000011001011",
+  "34": "0000100010101110",
+  "35": "0000100100101001"
 };
 
 export const BUILTIN_TEMPLATES: TemplateSpec[] = [
@@ -913,5 +917,675 @@ export const BUILTIN_TEMPLATES: TemplateSpec[] = [
         ]
       }
     ]
+  },
+  {
+    "id": "uni-200",
+    "name": "University 200 questions (KNUST layout)",
+    "description": "Same layout as the KNUST IDL sheet: 200 questions in 5 columns, candidate number, course code, year and semester. Graded live and offline.",
+    "printable": true,
+    "page": {
+      "width": 1240,
+      "height": 1754
+    },
+    "bubble_radius": 6.0,
+    "bubble_size": [
+      22,
+      12
+    ],
+    "alignment": {
+      "type": "aruco",
+      "dictionary": "DICT_4X4_100",
+      "markers": [
+        {
+          "id": 32,
+          "x": 44,
+          "y": 44,
+          "size": 72
+        },
+        {
+          "id": 33,
+          "x": 1124,
+          "y": 44,
+          "size": 72
+        },
+        {
+          "id": 34,
+          "x": 1124,
+          "y": 1638,
+          "size": 72
+        },
+        {
+          "id": 35,
+          "x": 44,
+          "y": 1638,
+          "size": 72
+        }
+      ]
+    },
+    "blocks": [
+      {
+        "type": "id",
+        "name": "Candidate number",
+        "label": "Candidate number",
+        "origin": [
+          112,
+          262
+        ],
+        "count": 7,
+        "options": "digits",
+        "option_gap": 19,
+        "item_gap": 34,
+        "allow_trailing_blank": false
+      },
+      {
+        "type": "field",
+        "field": "course_code",
+        "label": "Course code",
+        "name": "Course code letters",
+        "origin": [
+          430,
+          262
+        ],
+        "count": 5,
+        "options": "letters",
+        "option_gap": 16.6,
+        "item_gap": 34,
+        "allow_blank": true,
+        "allow_trailing_blank": false
+      },
+      {
+        "type": "field",
+        "field": "course_code",
+        "label": "Course code",
+        "name": "Course code digits",
+        "origin": [
+          600,
+          262
+        ],
+        "count": 3,
+        "options": "digits",
+        "option_gap": 19,
+        "item_gap": 34
+      },
+      {
+        "type": "field",
+        "field": "year_of_student",
+        "label": "Year",
+        "name": "Year of student",
+        "origin": [
+          800,
+          262
+        ],
+        "count": 1,
+        "options": "1234567",
+        "option_gap": 19,
+        "item_gap": 1
+      },
+      {
+        "type": "field",
+        "field": "semester",
+        "label": "Semester",
+        "name": "Semester",
+        "origin": [
+          930,
+          262
+        ],
+        "count": 1,
+        "options": "12",
+        "option_gap": 19,
+        "item_gap": 1
+      },
+      {
+        "type": "mcq",
+        "name": "Q1-5",
+        "origin": [
+          140.0,
+          752
+        ],
+        "first": 1,
+        "count": 5,
+        "options": "ABCDE",
+        "option_gap": 30,
+        "item_gap": 18
+      },
+      {
+        "type": "mcq",
+        "name": "Q6-10",
+        "origin": [
+          140.0,
+          854
+        ],
+        "first": 6,
+        "count": 5,
+        "options": "ABCDE",
+        "option_gap": 30,
+        "item_gap": 18
+      },
+      {
+        "type": "mcq",
+        "name": "Q11-15",
+        "origin": [
+          140.0,
+          956
+        ],
+        "first": 11,
+        "count": 5,
+        "options": "ABCDE",
+        "option_gap": 30,
+        "item_gap": 18
+      },
+      {
+        "type": "mcq",
+        "name": "Q16-20",
+        "origin": [
+          140.0,
+          1058
+        ],
+        "first": 16,
+        "count": 5,
+        "options": "ABCDE",
+        "option_gap": 30,
+        "item_gap": 18
+      },
+      {
+        "type": "mcq",
+        "name": "Q21-25",
+        "origin": [
+          140.0,
+          1160
+        ],
+        "first": 21,
+        "count": 5,
+        "options": "ABCDE",
+        "option_gap": 30,
+        "item_gap": 18
+      },
+      {
+        "type": "mcq",
+        "name": "Q26-30",
+        "origin": [
+          140.0,
+          1262
+        ],
+        "first": 26,
+        "count": 5,
+        "options": "ABCDE",
+        "option_gap": 30,
+        "item_gap": 18
+      },
+      {
+        "type": "mcq",
+        "name": "Q31-35",
+        "origin": [
+          140.0,
+          1364
+        ],
+        "first": 31,
+        "count": 5,
+        "options": "ABCDE",
+        "option_gap": 30,
+        "item_gap": 18
+      },
+      {
+        "type": "mcq",
+        "name": "Q36-40",
+        "origin": [
+          140.0,
+          1466
+        ],
+        "first": 36,
+        "count": 5,
+        "options": "ABCDE",
+        "option_gap": 30,
+        "item_gap": 18
+      },
+      {
+        "type": "mcq",
+        "name": "Q41-45",
+        "origin": [
+          360.0,
+          752
+        ],
+        "first": 41,
+        "count": 5,
+        "options": "ABCDE",
+        "option_gap": 30,
+        "item_gap": 18
+      },
+      {
+        "type": "mcq",
+        "name": "Q46-50",
+        "origin": [
+          360.0,
+          854
+        ],
+        "first": 46,
+        "count": 5,
+        "options": "ABCDE",
+        "option_gap": 30,
+        "item_gap": 18
+      },
+      {
+        "type": "mcq",
+        "name": "Q51-55",
+        "origin": [
+          360.0,
+          956
+        ],
+        "first": 51,
+        "count": 5,
+        "options": "ABCDE",
+        "option_gap": 30,
+        "item_gap": 18
+      },
+      {
+        "type": "mcq",
+        "name": "Q56-60",
+        "origin": [
+          360.0,
+          1058
+        ],
+        "first": 56,
+        "count": 5,
+        "options": "ABCDE",
+        "option_gap": 30,
+        "item_gap": 18
+      },
+      {
+        "type": "mcq",
+        "name": "Q61-65",
+        "origin": [
+          360.0,
+          1160
+        ],
+        "first": 61,
+        "count": 5,
+        "options": "ABCDE",
+        "option_gap": 30,
+        "item_gap": 18
+      },
+      {
+        "type": "mcq",
+        "name": "Q66-70",
+        "origin": [
+          360.0,
+          1262
+        ],
+        "first": 66,
+        "count": 5,
+        "options": "ABCDE",
+        "option_gap": 30,
+        "item_gap": 18
+      },
+      {
+        "type": "mcq",
+        "name": "Q71-75",
+        "origin": [
+          360.0,
+          1364
+        ],
+        "first": 71,
+        "count": 5,
+        "options": "ABCDE",
+        "option_gap": 30,
+        "item_gap": 18
+      },
+      {
+        "type": "mcq",
+        "name": "Q76-80",
+        "origin": [
+          360.0,
+          1466
+        ],
+        "first": 76,
+        "count": 5,
+        "options": "ABCDE",
+        "option_gap": 30,
+        "item_gap": 18
+      },
+      {
+        "type": "mcq",
+        "name": "Q81-85",
+        "origin": [
+          580.0,
+          752
+        ],
+        "first": 81,
+        "count": 5,
+        "options": "ABCDE",
+        "option_gap": 30,
+        "item_gap": 18
+      },
+      {
+        "type": "mcq",
+        "name": "Q86-90",
+        "origin": [
+          580.0,
+          854
+        ],
+        "first": 86,
+        "count": 5,
+        "options": "ABCDE",
+        "option_gap": 30,
+        "item_gap": 18
+      },
+      {
+        "type": "mcq",
+        "name": "Q91-95",
+        "origin": [
+          580.0,
+          956
+        ],
+        "first": 91,
+        "count": 5,
+        "options": "ABCDE",
+        "option_gap": 30,
+        "item_gap": 18
+      },
+      {
+        "type": "mcq",
+        "name": "Q96-100",
+        "origin": [
+          580.0,
+          1058
+        ],
+        "first": 96,
+        "count": 5,
+        "options": "ABCDE",
+        "option_gap": 30,
+        "item_gap": 18
+      },
+      {
+        "type": "mcq",
+        "name": "Q101-105",
+        "origin": [
+          580.0,
+          1160
+        ],
+        "first": 101,
+        "count": 5,
+        "options": "ABCDE",
+        "option_gap": 30,
+        "item_gap": 18
+      },
+      {
+        "type": "mcq",
+        "name": "Q106-110",
+        "origin": [
+          580.0,
+          1262
+        ],
+        "first": 106,
+        "count": 5,
+        "options": "ABCDE",
+        "option_gap": 30,
+        "item_gap": 18
+      },
+      {
+        "type": "mcq",
+        "name": "Q111-115",
+        "origin": [
+          580.0,
+          1364
+        ],
+        "first": 111,
+        "count": 5,
+        "options": "ABCDE",
+        "option_gap": 30,
+        "item_gap": 18
+      },
+      {
+        "type": "mcq",
+        "name": "Q116-120",
+        "origin": [
+          580.0,
+          1466
+        ],
+        "first": 116,
+        "count": 5,
+        "options": "ABCDE",
+        "option_gap": 30,
+        "item_gap": 18
+      },
+      {
+        "type": "mcq",
+        "name": "Q121-125",
+        "origin": [
+          800.0,
+          752
+        ],
+        "first": 121,
+        "count": 5,
+        "options": "ABCDE",
+        "option_gap": 30,
+        "item_gap": 18
+      },
+      {
+        "type": "mcq",
+        "name": "Q126-130",
+        "origin": [
+          800.0,
+          854
+        ],
+        "first": 126,
+        "count": 5,
+        "options": "ABCDE",
+        "option_gap": 30,
+        "item_gap": 18
+      },
+      {
+        "type": "mcq",
+        "name": "Q131-135",
+        "origin": [
+          800.0,
+          956
+        ],
+        "first": 131,
+        "count": 5,
+        "options": "ABCDE",
+        "option_gap": 30,
+        "item_gap": 18
+      },
+      {
+        "type": "mcq",
+        "name": "Q136-140",
+        "origin": [
+          800.0,
+          1058
+        ],
+        "first": 136,
+        "count": 5,
+        "options": "ABCDE",
+        "option_gap": 30,
+        "item_gap": 18
+      },
+      {
+        "type": "mcq",
+        "name": "Q141-145",
+        "origin": [
+          800.0,
+          1160
+        ],
+        "first": 141,
+        "count": 5,
+        "options": "ABCDE",
+        "option_gap": 30,
+        "item_gap": 18
+      },
+      {
+        "type": "mcq",
+        "name": "Q146-150",
+        "origin": [
+          800.0,
+          1262
+        ],
+        "first": 146,
+        "count": 5,
+        "options": "ABCDE",
+        "option_gap": 30,
+        "item_gap": 18
+      },
+      {
+        "type": "mcq",
+        "name": "Q151-155",
+        "origin": [
+          800.0,
+          1364
+        ],
+        "first": 151,
+        "count": 5,
+        "options": "ABCDE",
+        "option_gap": 30,
+        "item_gap": 18
+      },
+      {
+        "type": "mcq",
+        "name": "Q156-160",
+        "origin": [
+          800.0,
+          1466
+        ],
+        "first": 156,
+        "count": 5,
+        "options": "ABCDE",
+        "option_gap": 30,
+        "item_gap": 18
+      },
+      {
+        "type": "mcq",
+        "name": "Q161-165",
+        "origin": [
+          1020.0,
+          752
+        ],
+        "first": 161,
+        "count": 5,
+        "options": "ABCDE",
+        "option_gap": 30,
+        "item_gap": 18
+      },
+      {
+        "type": "mcq",
+        "name": "Q166-170",
+        "origin": [
+          1020.0,
+          854
+        ],
+        "first": 166,
+        "count": 5,
+        "options": "ABCDE",
+        "option_gap": 30,
+        "item_gap": 18
+      },
+      {
+        "type": "mcq",
+        "name": "Q171-175",
+        "origin": [
+          1020.0,
+          956
+        ],
+        "first": 171,
+        "count": 5,
+        "options": "ABCDE",
+        "option_gap": 30,
+        "item_gap": 18
+      },
+      {
+        "type": "mcq",
+        "name": "Q176-180",
+        "origin": [
+          1020.0,
+          1058
+        ],
+        "first": 176,
+        "count": 5,
+        "options": "ABCDE",
+        "option_gap": 30,
+        "item_gap": 18
+      },
+      {
+        "type": "mcq",
+        "name": "Q181-185",
+        "origin": [
+          1020.0,
+          1160
+        ],
+        "first": 181,
+        "count": 5,
+        "options": "ABCDE",
+        "option_gap": 30,
+        "item_gap": 18
+      },
+      {
+        "type": "mcq",
+        "name": "Q186-190",
+        "origin": [
+          1020.0,
+          1262
+        ],
+        "first": 186,
+        "count": 5,
+        "options": "ABCDE",
+        "option_gap": 30,
+        "item_gap": 18
+      },
+      {
+        "type": "mcq",
+        "name": "Q191-195",
+        "origin": [
+          1020.0,
+          1364
+        ],
+        "first": 191,
+        "count": 5,
+        "options": "ABCDE",
+        "option_gap": 30,
+        "item_gap": 18
+      },
+      {
+        "type": "mcq",
+        "name": "Q196-200",
+        "origin": [
+          1020.0,
+          1466
+        ],
+        "first": 196,
+        "count": 5,
+        "options": "ABCDE",
+        "option_gap": 30,
+        "item_gap": 18
+      }
+    ],
+    "regions": [
+      {
+        "name": "name",
+        "label": "Name",
+        "bbox": [
+          130,
+          96,
+          760,
+          150
+        ]
+      }
+    ],
+    "print": {
+      "lines": [
+        [
+          "Name",
+          140,
+          140,
+          760
+        ],
+        [
+          "Date",
+          800,
+          140,
+          1090
+        ]
+      ],
+      "instructions": null,
+      "group_boxes": true,
+      "footer": "Use an HB pencil \u00b7 fill the option completely \u00b7 erase cleanly \u00b7 keep the four corner squares visible"
+    }
   }
 ];

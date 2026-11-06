@@ -1,7 +1,7 @@
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 import { Icon } from '@/components/Icon';
 import SheetImage from '@/components/SheetImage';
@@ -9,7 +9,7 @@ import { Badge, Button, Card, IconButton, Notice, Screen, SectionTitle, Stat, ta
 import { gradeSheet, type GradedQuestion } from '@/lib/grading';
 import { effectiveStudentId } from '@/lib/models';
 import { deleteSheet, upsertSheet, useExam, useSheets } from '@/lib/store';
-import { colors, font, radius, scoreColor, space, type } from '@/lib/theme';
+import { colors, font, radius, scoreColor, space, themed, type, useColorScheme } from '@/lib/theme';
 
 const RESULT_COLORS: Record<GradedQuestion['result'], string> = {
   correct: colors.success,
@@ -22,6 +22,7 @@ const RESULT_COLORS: Record<GradedQuestion['result'], string> = {
 type Filter = 'all' | 'wrong' | 'flagged';
 
 export default function SheetDetail() {
+  useColorScheme(); // re-render when light/dark mode changes
   const { examId, sheetId } = useLocalSearchParams<{ examId: string; sheetId: string }>();
   const exam = useExam(examId);
   const sheets = useSheets(examId);
@@ -233,7 +234,7 @@ export default function SheetDetail() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => ({
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   cell: {
     width: '18.6%',
@@ -262,4 +263,4 @@ const styles = StyleSheet.create({
     fontFamily: font.mono,
     marginVertical: space.lg,
   },
-});
+}));

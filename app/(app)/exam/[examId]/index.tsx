@@ -1,19 +1,23 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Icon } from '@/components/Icon';
-import { Badge, Button, Card, EmptyState, IconButton, Notice, Screen, SectionTitle, Segmented, Stat, useToast } from '@/components/ui';
+import { Badge, Button, EmptyState, IconButton, Notice, Screen, SectionTitle, Segmented, useToast } from '@/components/ui';
+import { sheetPdfUrl } from '@/lib/api';
 import { exportExamToExcel } from '@/lib/excel';
 import { examStats, gradeSheet } from '@/lib/grading';
 import { effectiveStudentId, needsReview, type Sheet } from '@/lib/models';
 import { deleteExam, useExam, useSheets } from '@/lib/store';
 import { downloadTemplate, isBuiltin, isCached, useTemplateCacheVersion } from '@/lib/templateCache';
-import { colors, font, radius, scoreColor, space, type } from '@/lib/theme';
+import { colors, font, radius, scoreColor, space, themed, type, useColorScheme } from '@/lib/theme';
 
 type Sort = 'recent' | 'id' | 'score' | 'review';
 
 export default function ExamDetail() {
+  useColorScheme(); // re-render when light/dark mode changes
   const { examId } = useLocalSearchParams<{ examId: string }>();
   const exam = useExam(examId);
   const sheets = useSheets(examId);
@@ -71,29 +75,63 @@ export default function ExamDetail() {
       },
     ]);
 
+  const go = (pathname: '/exam/[examId]/key' | '/exam/[examId]/scan' | '/exam/[examId]/results') => router.push({ pathname, params: { examId: exam.id } });
+  const needsDownload = exam.templateId !== 'auto' && !isBuiltin(exam.templateId) && !isCached(exam.templateId);
+
   const header = (
     <View>
-      <Card>
-        <View style={{ flexDirection: 'row' }}>
-          <Stat label="graded" value={String(st.count)} />
-          <Stat label="average" value={st.mean == null ? '–' : `${st.mean}%`} color={scoreColor(st.mean)} />
-          <Stat label="highest" value={st.high == null ? '–' : `${st.high}%`} />
-          <Stat label="pass rate" value={st.passRate == null ? '–' : `${st.passRate}%`} />
-        </View>
-        {st.count > 1 && (
-          <Text style={[type.caption, { marginTop: space.md }]}>
-            Median {st.median}% · lowest {st.low}% · std. dev. {st.stdev} · pass mark {exam.passMark}%
-          </Text>
-        )}
-      </Card>
+      {/* The exam in three steps: key -> scan -> results */}
+      <View style={styles.steps}>
+        <Step
+          n={1}
+          title="Answer key"
+          status={keyComplete ? `All ${exam.numQuestions} answers set` : `${keySet} of ${exam.numQuestions} set - unset questions are not graded`}
+          tone={keyComplete ? 'done' : 'todo'}
+          onPress={() => go('/exam/[examId]/key')}
+        />
+        <Step
+          n={2}
+          title="Scan papers"
+          status={st.count ? `${st.count} graded${st.needsReview ? ` · ${st.needsReview} to review` : ''}` : 'Hold your phone over each answer sheet'}
+          tone={st.count ? 'done' : keyComplete ? 'next' : 'todo'}
+          onPress={() => go('/exam/[examId]/scan')}
+        />
+        <Step
+          n={3}
+          title="Results"
+          status={st.count ? `Average ${st.mean}% · pass rate ${st.passRate}% · question analysis` : 'Scores and question analysis appear here'}
+          tone={st.count ? 'done' : 'todo'}
+          onPress={() => (st.count ? go('/exam/[examId]/results') : toast('Scan some sheets first.', 'info'))}
+          last
+        />
+      </View>
 
-      {!keyComplete && (
-        <View style={{ marginTop: space.md }}>
-          <Notice tone="warning" text={`Answer key: ${keySet} of ${exam.numQuestions} questions set. Unset questions are not graded.`} />
-        </View>
-      )}
-      {exam.templateId !== 'auto' && !isBuiltin(exam.templateId) && !isCached(exam.templateId) && (
-        <View style={{ marginTop: space.md, gap: space.sm }}>
+      <Button title={st.count ? 'Scan more papers' : 'Start scanning'} icon="scan" onPress={() => go('/exam/[examId]/scan')} style={{ marginTop: space.lg }} />
+      <View style={[styles.actions, { marginTop: space.sm }]}>
+        <Button title="Export Excel" icon="download-outline" variant="secondary" compact loading={exporting} onPress={doExport} style={{ flex: 1 }} />
+        {isBuiltin(exam.templateId) && (
+          <Button
+            title="Print sheets"
+            icon="print-outline"
+            variant="secondary"
+            compact
+            onPress={async () => {
+              try {
+                const dest = `${FileSystem.cacheDirectory}scantron-${exam.templateId}.pdf`;
+                const r = await FileSystem.downloadAsync(sheetPdfUrl(exam.templateId, exam.title.slice(0, 60)), dest);
+                if (r.status !== 200) throw new Error(`Server returned ${r.status}`);
+                await Sharing.shareAsync(r.uri, { mimeType: 'application/pdf', dialogTitle: 'Print answer sheets', UTI: 'com.adobe.pdf' });
+              } catch (e: any) {
+                toast(e?.message?.includes('Network') ? 'Connect to the internet to download sheets.' : e?.message ?? 'Download failed', 'danger');
+              }
+            }}
+            style={{ flex: 1 }}
+          />
+        )}
+      </View>
+
+      {needsDownload && (
+        <View style={{ marginTop: space.lg, gap: space.sm }}>
           <Notice tone="info" icon="cloud-download-outline" text="Download this sheet type once to grade it offline, instantly and with live scanning." />
           <Button
             title="Download for offline use"
@@ -120,14 +158,6 @@ export default function ExamDetail() {
           <Notice tone="warning" text={`Duplicate index numbers: ${[...dupes].slice(0, 5).join(', ')}. Check those sheets.`} />
         </View>
       )}
-
-      <View style={styles.actions}>
-        <Button title="Scan sheets" icon="scan" onPress={() => router.push({ pathname: '/exam/[examId]/scan', params: { examId: exam.id } })} style={{ flex: 1 }} />
-      </View>
-      <View style={[styles.actions, { marginTop: space.sm }]}>
-        <Button title="Answer key" icon="key-outline" variant="secondary" compact onPress={() => router.push({ pathname: '/exam/[examId]/key', params: { examId: exam.id } })} style={{ flex: 1 }} />
-        <Button title="Export Excel" icon="download-outline" variant="secondary" compact loading={exporting} onPress={doExport} style={{ flex: 1 }} />
-      </View>
 
       <SectionTitle right={<Text style={type.caption}>{st.needsReview ? `${st.needsReview} need review` : ''}</Text>}>{`Sheets (${sheets.length})`}</SectionTitle>
       {sheets.length > 1 && (
@@ -171,6 +201,22 @@ export default function ExamDetail() {
   );
 }
 
+function Step({ n, title, status, tone, onPress, last }: { n: number; title: string; status: string; tone: 'done' | 'next' | 'todo'; onPress: () => void; last?: boolean }) {
+  const done = tone === 'done';
+  return (
+    <Pressable onPress={onPress} style={({ pressed }) => [styles.step, !last && styles.stepRule, pressed && { backgroundColor: colors.surface2 }]} accessibilityRole="button">
+      <View style={[styles.stepNum, done ? { backgroundColor: colors.success, borderColor: colors.success } : tone === 'next' ? { borderColor: colors.accent } : null]}>
+        {done ? <Icon name="checkmark" size={15} color={colors.surface} /> : <Text style={{ color: tone === 'next' ? colors.accent : colors.textMuted, fontWeight: '700' }}>{n}</Text>}
+      </View>
+      <View style={{ flex: 1, marginLeft: space.md }}>
+        <Text style={type.heading}>{title}</Text>
+        <Text style={[type.caption, { marginTop: 2 }]}>{status}</Text>
+      </View>
+      <Icon name="chevron-forward" size={18} color={colors.textFaint} />
+    </Pressable>
+  );
+}
+
 function SheetRow({ sheet, pct, score, dupe, examId }: { sheet: Sheet; pct: number | null; score: string; dupe: boolean; examId: string }) {
   const id = effectiveStudentId(sheet);
   const review = needsReview(sheet);
@@ -197,8 +243,12 @@ function SheetRow({ sheet, pct, score, dupe, examId }: { sheet: Sheet; pct: numb
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => ({
   actions: { flexDirection: 'row', gap: space.sm, marginTop: space.lg },
+  steps: { backgroundColor: colors.surface, borderRadius: radius.lg, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, overflow: 'hidden' },
+  step: { flexDirection: 'row', alignItems: 'center', padding: space.md, paddingVertical: 14 },
+  stepRule: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
+  stepNum: { width: 30, height: 30, borderRadius: 15, borderWidth: 1.5, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
   sheetRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -210,4 +260,4 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   scoreDot: { width: 44, height: 44, borderRadius: radius.md, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
-});
+}));

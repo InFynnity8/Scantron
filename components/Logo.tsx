@@ -1,6 +1,6 @@
 import Svg, { Ellipse, Rect } from 'react-native-svg';
 
-import { colors } from '@/lib/theme';
+import { BRAND } from '@/lib/theme';
 
 /** Filled option in each row of the mark (3 rows x 4 options). Same drawing as the app icon. */
 const MARK = [1, 3, 0];
@@ -9,7 +9,7 @@ const MARK = [1, 3, 0];
 export default function Logo({ size = 64 }: { size?: number }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 64 64">
-      <Rect x={0} y={0} width={64} height={64} rx={14} fill={colors.accent} />
+      <Rect x={0} y={0} width={64} height={64} rx={14} fill={BRAND} />
       {MARK.map((filled, row) =>
         [0, 1, 2, 3].map((col) => (
           <Ellipse

@@ -143,6 +143,8 @@ questions, the candidate number, the course code (for example `BIT466`), the
 department code, the academic year, the year of student and the semester. Pick
 *KNUST IDL answer sheet (200)* when you create an exam.
 
+To print your own sheets in the same format, use **University 200 questions (KNUST layout)** under *Printable sheets*. It has the same 5 x 40 layout, candidate number, course code, year and semester, plus corner markers, so it is graded live and offline with no download. It carries no institution branding.
+
 For other sheet designs, run calibration once per sheet design, from one blank scan. The full guide is
 in [backend/templates/README.md](backend/templates/README.md).
 

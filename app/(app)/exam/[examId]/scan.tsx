@@ -16,10 +16,10 @@ import { DeviceScanError, scanGray, type DeviceScanOptions } from '@/lib/omr/eng
 import type { CompiledTemplate, ScanReading } from '@/lib/omr/types';
 import { INDEX_FIELD } from '@/lib/omr/template';
 import { canGradeOnDevice, deviceOptions, newSheetId, preparePhoto, ScanError, scanPhoto, toSheet } from '@/lib/scanner';
-import { useSettings } from '@/lib/settings';
+import { updateSettings, useSettings } from '@/lib/settings';
 import { deleteSheet, upsertSheet, useExam, useSheets } from '@/lib/store';
 import { loadedTemplate } from '@/lib/templateCache';
-import { colors, font, radius, scoreColor, space, type } from '@/lib/theme';
+import { colors, font, radius, scoreColor, space, themed, type, useColorScheme } from '@/lib/theme';
 
 type Phase = 'live' | 'processing' | 'result' | 'error';
 
@@ -35,6 +35,7 @@ function signature(r: ScanReading): string {
 }
 
 export default function ScanScreen() {
+  useColorScheme(); // re-render when light/dark mode changes
   const { examId, mode } = useLocalSearchParams<{ examId: string; mode?: 'key' }>();
   const exam = useExam(examId);
   const sheets = useSheets(examId);
@@ -145,7 +146,7 @@ export default function ScanScreen() {
           const pic = await cam.current?.takePictureAsync({ quality: 0.5, skipProcessing: true, shutterSound: false, exif: false });
           frameUri = pic?.uri;
           if (!frameUri || !alive || phaseRef.current !== 'live') break;
-          const p = await preparePhoto(frameUri, devOpts.custom ? 960 : 760, true, 0.7);
+          const p = await preparePhoto(frameUri, liveFrameWidth(template, !!devOpts.custom), true, 0.7);
           smallUri = p.uri;
           try {
             const reading = scanGray(p.gray!, devOpts);
@@ -177,7 +178,7 @@ export default function ScanScreen() {
     return () => {
       alive = false;
     };
-  }, [liveMode, focused, ready, phase, exam, view.w, view.h, settings.autoCapture, capture, devOpts]);
+  }, [liveMode, focused, ready, phase, exam, view.w, view.h, settings.autoCapture, capture, devOpts, template]);
 
   // ------------------------------------------------------------------ actions
   const duplicate = useMemo(() => {
@@ -310,6 +311,26 @@ export default function ScanScreen() {
             )}
             <Text style={{ color: colors.camText, fontSize: 14, marginLeft: 4, flexShrink: 1 }}>{liveMode ? hint : 'Fit the sheet in the frame, then tap capture'}</Text>
           </View>
+        </View>
+      )}
+
+      {/* one-time tips */}
+      {phase === 'live' && !settings.seenScanTips && (
+        <View style={styles.tips}>
+          <Text style={{ color: colors.camText, fontWeight: '700', fontSize: 15, marginBottom: 6 }}>Getting a clean read</Text>
+          {[
+            'Lay the sheet flat on a darker surface',
+            'Fit the whole page in view, with all four corners showing',
+            'Hold the phone straight above it and keep still - it captures by itself',
+          ].map((t) => (
+            <Text key={t} style={{ color: CAM_MUTED, fontSize: 14, lineHeight: 21 }}>
+              {'•  '}
+              {t}
+            </Text>
+          ))}
+          <Pressable onPress={() => updateSettings({ seenScanTips: true })} style={styles.tipsBtn} accessibilityRole="button">
+            <Text style={{ color: colors.camText, fontWeight: '600' }}>Got it</Text>
+          </Pressable>
         </View>
       )}
 
@@ -465,6 +486,12 @@ function Guide() {
   );
 }
 
+/** Live-frame resolution: small option cells (200-question sheets) need more pixels. */
+function liveFrameWidth(t: CompiledTemplate | undefined, custom: boolean) {
+  if (t && Math.min(t.rx, t.ry) < 8) return 1080;
+  return custom ? 960 : 760;
+}
+
 // Camera chrome sits on the live preview, so it uses its own light-on-dark palette.
 const CAM_MUTED = 'rgba(255,255,255,0.72)';
 const CAM_GOOD = '#7DDBA3';
@@ -475,9 +502,11 @@ function camScoreColor(pct: number | null | undefined) {
   return pct >= 70 ? CAM_GOOD : pct >= 50 ? TORCH_ON : '#FF8A80';
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => ({
   fill: { flex: 1, backgroundColor: '#000' },
   permission: { flex: 1, backgroundColor: colors.bg, justifyContent: 'center' },
+  tips: { position: 'absolute', left: space.lg, right: space.lg, top: 110, backgroundColor: colors.camBar, borderRadius: radius.lg, padding: space.lg },
+  tipsBtn: { alignSelf: 'flex-end', marginTop: space.md, paddingHorizontal: space.lg, paddingVertical: 8, borderRadius: radius.md, borderWidth: 1, borderColor: 'rgba(255,255,255,0.35)' },
   glass: { backgroundColor: colors.camBar },
   topBar: { position: 'absolute', top: 0, left: 0, right: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: space.md, gap: space.sm },
   pill: { flex: 1, borderRadius: radius.pill, paddingVertical: 8, paddingHorizontal: space.lg, alignItems: 'center' },
@@ -504,4 +533,4 @@ const styles = StyleSheet.create({
   guideWrap: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
   guide: { width: '82%', aspectRatio: 210 / 297, maxHeight: '72%' },
   corner: { position: 'absolute', width: 36, height: 36, borderColor: colors.camGuide, borderRadius: 3 },
-});
+}));

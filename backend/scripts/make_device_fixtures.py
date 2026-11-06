@@ -53,8 +53,10 @@ def main() -> None:
             jpeg=int(rng.integers(60, 95)),
         )
         photo = photograph(draw_marks(t, m, rng), p, rng)
-        h = int(photo.shape[0] * a.width / photo.shape[1])
-        small = cv2.resize(photo, (a.width, h), interpolation=cv2.INTER_AREA)
+        # The app uses a larger live frame for sheets with small option cells (200 questions).
+        width = max(a.width, 1080) if min(t.rx, t.ry) < 8 else a.width
+        h = int(photo.shape[0] * width / photo.shape[1])
+        small = cv2.resize(photo, (width, h), interpolation=cv2.INTER_AREA)
         name = out / f"case{i:03d}.jpg"
         cv2.imwrite(str(name), small, [cv2.IMWRITE_JPEG_QUALITY, 70])
         cases.append({"file": name.name, "template": t.id, "answers": {k: sorted(v) for k, v in m.answers.items()}, "id": m.student_id})

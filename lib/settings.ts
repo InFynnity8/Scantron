@@ -1,6 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSyncExternalStore } from 'react';
 
+import { setThemeMode, type ThemeMode } from './theme';
+
 export type EnginePreference = 'auto' | 'device' | 'server';
 
 export interface Settings {
@@ -11,6 +13,10 @@ export interface Settings {
   liveScan: boolean;
   autoCapture: boolean;
   haptics: boolean;
+  /** light (default), dark, or follow the phone */
+  theme: ThemeMode;
+  /** the one-time scanning tips were dismissed */
+  seenScanTips: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -20,6 +26,8 @@ export const DEFAULT_SETTINGS: Settings = {
   liveScan: true,
   autoCapture: true,
   haptics: true,
+  theme: 'light',
+  seenScanTips: false,
 };
 
 const KEY = 'scantron.settings.v1';
@@ -33,6 +41,7 @@ export async function loadSettings(): Promise<void> {
   } catch {
     current = DEFAULT_SETTINGS;
   }
+  setThemeMode(current.theme);
   listeners.forEach((l) => l());
 }
 
@@ -42,6 +51,7 @@ export function getSettings(): Settings {
 
 export async function updateSettings(patch: Partial<Settings>): Promise<void> {
   current = { ...current, ...patch };
+  if (patch.theme) setThemeMode(patch.theme);
   listeners.forEach((l) => l());
   await AsyncStorage.setItem(KEY, JSON.stringify(current));
 }

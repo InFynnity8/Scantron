@@ -1,18 +1,20 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Icon } from '@/components/Icon';
 import { Badge, Button, Field, Notice, Screen, SectionTitle, Segmented, useToast } from '@/components/ui';
+import { sheetPreviewUrl } from '@/lib/api';
 import { DEFAULT_SCORING, type Exam } from '@/lib/models';
 import { getExam, saveExam, uid } from '@/lib/store';
 import { downloadTemplate, isCached } from '@/lib/templateCache';
 import { useTemplateOptions } from '@/lib/templates';
-import { colors, radius, space, type } from '@/lib/theme';
+import { colors, radius, space, themed, type, useColorScheme } from '@/lib/theme';
 
 type Marking = 'standard' | 'negative';
 
 export default function NewExam() {
+  useColorScheme(); // re-render when light/dark mode changes
   const { examId } = useLocalSearchParams<{ examId?: string }>();
   const editing = examId ? getExam(examId) : undefined;
   const { options, loading, error } = useTemplateOptions();
@@ -97,9 +99,18 @@ export default function NewExam() {
                   accessibilityRole="radio"
                   accessibilityState={{ checked: active }}
                 >
-                  <Icon name={active ? 'radio-button-on' : 'radio-button-off'} size={20} color={active ? colors.accent : colors.textFaint} />
+                  <View style={styles.thumb}>
+                    {o.id === 'auto' ? (
+                      <Icon name="scan" size={22} color={colors.textFaint} />
+                    ) : (
+                      <Image source={{ uri: sheetPreviewUrl(o.id, o.printable) }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+                    )}
+                  </View>
                   <View style={{ flex: 1, marginLeft: space.md }}>
-                    <Text style={[type.body, { fontWeight: '600' }]}>{o.name}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+                      <Text style={[type.body, { fontWeight: '600', flex: 1 }]}>{o.name}</Text>
+                      <Icon name={active ? 'radio-button-on' : 'radio-button-off'} size={20} color={active ? colors.accent : colors.textFaint} />
+                    </View>
                     {!!o.description && <Text style={type.caption}>{o.description}</Text>}
                     <View style={{ flexDirection: 'row', gap: 6, marginTop: 6 }}>
                       {o.offline ? (
@@ -145,7 +156,18 @@ export default function NewExam() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => ({
+  thumb: {
+    width: 52,
+    height: 74,
+    borderRadius: radius.sm,
+    overflow: 'hidden',
+    backgroundColor: colors.surface2,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   option: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -155,4 +177,4 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     backgroundColor: colors.surface,
   },
-});
+}));

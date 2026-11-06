@@ -1,12 +1,12 @@
 import Constants from 'expo-constants';
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { ScrollView, Switch, Text, View } from 'react-native';
 
 import { Button, Card, Field, Notice, Screen, SectionTitle, Segmented, useToast } from '@/components/ui';
 import { health } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { DEFAULT_SETTINGS, trimUrl, updateSettings, useSettings, type EnginePreference } from '@/lib/settings';
-import { colors, space, type } from '@/lib/theme';
+import { colors, space, themed, type, type ThemeMode, useColorScheme } from '@/lib/theme';
 
 function Toggle({ label, hint, value, onChange }: { label: string; hint: string; value: boolean; onChange: (v: boolean) => void }) {
   return (
@@ -21,6 +21,7 @@ function Toggle({ label, hint, value, onChange }: { label: string; hint: string;
 }
 
 export default function SettingsScreen() {
+  useColorScheme(); // re-render when light/dark mode changes
   const s = useSettings();
   const { email, guest, signOut } = useAuth();
   const toast = useToast();
@@ -49,6 +50,17 @@ export default function SettingsScreen() {
           <Text style={[type.caption, { marginBottom: space.md }]}>Exams and results are stored on this phone.</Text>
           <Button title={guest ? 'Sign in or create account' : 'Sign out'} variant="secondary" compact onPress={signOut} />
         </Card>
+
+        <SectionTitle>Appearance</SectionTitle>
+        <Segmented<ThemeMode>
+          value={s.theme}
+          onChange={(theme) => updateSettings({ theme })}
+          options={[
+            { value: 'light', label: 'Light' },
+            { value: 'dark', label: 'Dark' },
+            { value: 'system', label: 'Match phone' },
+          ]}
+        />
 
         <SectionTitle>Scanning</SectionTitle>
         <Card>
@@ -98,6 +110,6 @@ export default function SettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => ({
   toggle: { flexDirection: 'row', alignItems: 'center', paddingVertical: space.sm },
-});
+}));

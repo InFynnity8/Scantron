@@ -29,7 +29,9 @@ export const AUTO_TEMPLATE: TemplateOption = {
 };
 
 function builtinOptions(): TemplateOption[] {
-  return BUILTIN_TEMPLATES.map((t) => {
+  // University (KNUST-layout) sheet first, then the standard sheets by size.
+  const ordered = [...BUILTIN_TEMPLATES].sort((a, b) => Number(b.id.startsWith('uni-')) - Number(a.id.startsWith('uni-')));
+  return ordered.map((t) => {
     const mcq = t.blocks.filter((b) => b.type === 'mcq');
     const idb = t.blocks.filter((b) => b.type === 'id');
     return {

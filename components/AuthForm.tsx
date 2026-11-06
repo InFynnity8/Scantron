@@ -1,12 +1,12 @@
 import { Link } from 'expo-router';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import Logo from '@/components/Logo';
 import { Button, Field, Notice } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
-import { colors, space, type } from '@/lib/theme';
+import { colors, space, themed, type } from '@/lib/theme';
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -84,9 +84,9 @@ export default function AuthForm({ mode }: { mode: 'login' | 'register' }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => ({
   wrap: { padding: space.xl, paddingTop: space.xxl * 1.5, flexGrow: 1 },
   logo: { alignSelf: 'center', marginBottom: space.xl },
   row: { flexDirection: 'row', justifyContent: 'center', marginTop: space.xl },
   divider: { height: 1, backgroundColor: colors.border, marginVertical: space.xl },
-});
+}));

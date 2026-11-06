@@ -1,10 +1,10 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { memo, useCallback, useEffect, useState } from 'react';
-import { Alert, FlatList, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, FlatList, Modal, Pressable, Text, TextInput, View } from 'react-native';
 
 import { Button, IconButton, Notice, Screen, tap, useToast } from '@/components/ui';
 import { saveExam, useExam } from '@/lib/store';
-import { colors, font, radius, space, type } from '@/lib/theme';
+import { colors, font, radius, space, themed, type, useColorScheme } from '@/lib/theme';
 
 const Row = memo(function Row({
   index,
@@ -50,6 +50,7 @@ const Row = memo(function Row({
 });
 
 export default function AnswerKey() {
+  useColorScheme(); // re-render when light/dark mode changes
   const { examId, first, scanned } = useLocalSearchParams<{ examId: string; first?: string; scanned?: string }>();
   const exam = useExam(examId);
   const toast = useToast();
@@ -174,7 +175,7 @@ export default function AnswerKey() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => ({
   row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: space.lg, paddingVertical: 7 },
   qnum: { width: 40, color: colors.textMuted, fontWeight: '700', fontSize: 15, fontFamily: font.mono },
   chip: {
@@ -215,4 +216,4 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
     textAlignVertical: 'top',
   },
-});
+}));

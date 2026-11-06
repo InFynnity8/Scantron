@@ -17,7 +17,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { Icon, type IconName } from '@/components/Icon';
 import { getSettings } from '@/lib/settings';
-import { colors, radius, space, type } from '@/lib/theme';
+import { colors, radius, space, themed, type } from '@/lib/theme';
 
 export type { IconName };
 
@@ -328,7 +328,7 @@ export function useToast() {
   return useContext(ToastCtx);
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => ({
   screen: { flex: 1, backgroundColor: colors.bg },
   header: {
     flexDirection: 'row',
@@ -385,11 +385,11 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: space.lg,
     right: space.lg,
-    backgroundColor: '#24221E',
+    backgroundColor: colors.toast,
     borderRadius: radius.md,
     paddingVertical: 14,
     paddingHorizontal: space.lg,
     borderLeftWidth: 4,
     elevation: 6,
   },
-});
+}));

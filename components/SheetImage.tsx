@@ -8,7 +8,7 @@ import type { GradedQuestion } from '@/lib/grading';
 import type { Sheet } from '@/lib/models';
 import { project } from '@/lib/omr/homography';
 import { loadCustomTemplate, loadedTemplate, useTemplateCacheVersion } from '@/lib/templateCache';
-import { colors, radius } from '@/lib/theme';
+import { colors, radius, themed } from '@/lib/theme';
 
 /** Zoomable sheet photo. Server scans come pre-annotated; device scans get a vector overlay. */
 export default function SheetImage({ sheet, graded, height = 460 }: { sheet: Sheet; graded: GradedQuestion[]; height?: number }) {
@@ -89,6 +89,6 @@ export default function SheetImage({ sheet, graded, height = 460 }: { sheet: She
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => ({
   wrap: { backgroundColor: '#000', borderRadius: radius.lg, overflow: 'hidden' },
-});
+}));

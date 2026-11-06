@@ -7,9 +7,10 @@ import { Icon } from '@/components/Icon';
 import { Button, EmptyState, IconButton } from '@/components/ui';
 import { examStats } from '@/lib/grading';
 import { useAllSheets, useExams } from '@/lib/store';
-import { colors, radius, scoreColor, space, type } from '@/lib/theme';
+import { colors, radius, scoreColor, space, themed, type, useColorScheme } from '@/lib/theme';
 
 export default function Home() {
+  useColorScheme(); // re-render when light/dark mode changes
   const exams = useExams();
   const sheets = useAllSheets();
   const totals = useMemo(() => {
@@ -106,7 +107,7 @@ function Summary({ value, label, color = colors.text }: { value: number; label: 
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => ({
   top: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: space.lg, paddingTop: space.lg, paddingBottom: space.md },
   summary: {
     flexDirection: 'row',
@@ -138,4 +139,4 @@ const styles = StyleSheet.create({
     borderTopColor: colors.border,
     backgroundColor: colors.bg,
   },
-});
+}));

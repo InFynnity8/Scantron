@@ -240,3 +240,38 @@ def test_knust_idl_sheet(engine, registry, seed, rotation, background):
     for k, v in KI.expected_fields(f).items():
         assert got[k] == v, (k, got[k], v)
     assert got["department_code"] is None and got["candidate_type"] is None
+
+
+@pytest.mark.parametrize("seed,rotation", [(11, 0.0), (12, 180.0)])
+def test_university_200_printable(engine, registry, seed, rotation):
+    """The printable 200-question sheet in the KNUST layout is detected by its markers
+    and read exactly: answers, candidate number, course code, year and semester."""
+    from scantron_omr.render import render_template_debug
+
+    from . import knust_sim as K
+
+    t = registry.get("uni-200")
+    rng = np.random.default_rng(seed)
+    page = cv2.resize(render_template_debug(t), None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
+    answers = {q.label: [str(rng.choice(list("ABCDE")))] for q in t.questions}
+    for q in rng.choice(200, 6, replace=False):
+        answers[str(q + 1)] = []
+    sid = "".join(str(rng.integers(0, 10)) for _ in range(7))
+    letters = "".join(rng.choice(list("ABCDEFGHIJKLMNOPQRSTUVWXYZ"), 3))
+    digits = "".join(str(rng.integers(0, 10)) for _ in range(3))
+    marks = [q.centers[q.options.index(o)] for q in t.questions for o in answers[q.label]]
+    marks += [col.centers[col.options.index(c)] for col, c in zip(t.fields["index_number"].columns, sid)]
+    cc = t.fields["course_code"].columns
+    marks += [col.centers[col.options.index(c)] for col, c in zip(cc[:5], letters)]
+    marks += [col.centers[col.options.index(c)] for col, c in zip(cc[5:], digits)]
+    for name, v in (("year_of_student", "3"), ("semester", "1")):
+        col = t.fields[name].columns[0]
+        marks.append(col.centers[col.options.index(v)])
+    for x, y in marks:
+        K.draw_dash(page, x * 2, y * 2, rng, 1.5)
+    photo = photograph(page, PhotoParams(rotation=rotation + float(rng.uniform(-6, 6)), persp=0.05), rng)
+    res = engine.scan(ScanRequest(photo, template="detect", include_images=False))
+    assert res["template"]["id"] == "uni-200"
+    assert read_answers(res) == {k: sorted(v) for k, v in answers.items()}
+    got = {k: v["value"] for k, v in res["fields"].items()}
+    assert got == {"index_number": sid, "course_code": letters + digits, "year_of_student": "3", "semester": "1"}

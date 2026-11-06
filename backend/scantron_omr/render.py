@@ -53,25 +53,35 @@ def render_sheet(t: Template, scale: float = 2.0, title: str | None = None) -> I
             m = cv2.aruco.generateImageMarker(dic, mid, size, borderBits=1)
             img.paste(Image.fromarray(m).convert("RGB"), (int(round(S(x0))), int(round(S(y0)))))
 
+    # Layout options from the spec ("print"); defaults are the standard sheets.
+    cfg = (t.raw or {}).get("print", {})
+    rx, ry = S(t.rx), S(t.ry)
+    cell = abs(t.rx - t.ry) > 0.5  # narrow "<A>"-style option cells instead of round bubbles
+
     # Header
-    f_title, f_lbl, f_small, f_opt = _font(int(S(30)), True), _font(int(S(17))), _font(int(S(13))), _font(int(S(12)), True)
+    f_title, f_lbl, f_small = _font(int(S(30)), True), _font(int(S(17))), _font(int(S(13)))
+    f_opt = _font(int(S(min(12, t.ry * 1.5))), True)
     d.text((S(140), S(52)), title or "ANSWER SHEET", font=f_title, fill=ACCENT)
     d.text((S(140), S(92)), f"{t.name}  ·  sheet {t.id}", font=f_small, fill=SOFT)
 
-    lx0, lx1 = S(90), S(760)
-    for i, lbl in enumerate(["Name", "Course / Exam", "Date", "Signature"]):
-        y = S(205 + i * 62)
-        d.text((lx0, y - S(26)), lbl, font=f_lbl, fill=INK)
-        d.line([(lx0, y + S(8)), (lx1, y + S(8))], fill=SOFT, width=max(1, int(S(1.2))))
+    lx0 = S(90)
+    lines = cfg.get("lines") or [[lbl, 90, 205 + i * 62, 760] for i, lbl in enumerate(["Name", "Course / Exam", "Date", "Signature"])]
+    for lbl, x0, y, x1 in lines:
+        d.text((S(x0), S(y) - S(26)), lbl, font=f_lbl, fill=INK)
+        d.line([(S(x0), S(y) + S(8)), (S(x1), S(y) + S(8))], fill=SOFT, width=max(1, int(S(1.2))))
 
     instr = (
         "• Use a dark pencil or black/blue pen.   • Fill the bubble completely.\n"
         "• Erase cleanly to change an answer.   • Do not mark the corner squares."
     )
-    d.multiline_text((lx0, S(470)), instr, font=f_small, fill=INK, spacing=int(S(6)))
+    show_instructions = "instructions" not in cfg
+    if show_instructions:
+        d.multiline_text((lx0, S(470)), instr, font=f_small, fill=INK, spacing=int(S(6)))
 
     # Example of a correct mark
     ex_y = S(545)
+    if not show_instructions:
+        ex_y = -S(1000)  # off-page: no example row on this layout
     d.text((lx0, ex_y - S(9)), "Correct mark:", font=f_small, fill=INK)
     r = S(t.bubble_radius)
     cx = lx0 + S(125)
@@ -88,11 +98,14 @@ def render_sheet(t: Template, scale: float = 2.0, title: str | None = None) -> I
         else:
             d.ellipse([cx - r * 0.25, ex_y - r * 0.25, cx + r * 0.25, ex_y + r * 0.25], fill=INK)
 
-    ring_w = max(1, int(round(S(1.5))))
+    ring_w = max(1, int(round(S(1.2 if cell else 1.5))))
 
     def bubble(cx: float, cy: float, label: str) -> None:
         x, y = S(cx), S(cy)
-        d.ellipse([x - r, y - r, x + r, y + r], outline=RING, width=ring_w)
+        if cell:
+            d.rounded_rectangle([x - rx, y - ry, x + rx, y + ry], radius=ry * 0.9, outline=RING, width=ring_w)
+        else:
+            d.ellipse([x - r, y - r, x + r, y + r], outline=RING, width=ring_w)
         d.text((x, y), label, font=f_opt, fill=SOFT, anchor="mm")
 
     # Code fields (index number, course code...): write-in boxes on top + bubbles
@@ -102,11 +115,11 @@ def render_sheet(t: Template, scale: float = 2.0, title: str | None = None) -> I
             for (cx, cy), opt in zip(col.centers, col.options):
                 bubble(cx, cy, opt)
         first = cols[0].centers[0]
-        top = min(c.centers[:, 1].min() for c in cols) - t.bubble_radius
-        bottom = max(c.centers[:, 1].max() for c in cols) + t.bubble_radius
-        left = min(c.centers[:, 0].min() for c in cols) - t.bubble_radius
-        right = max(c.centers[:, 0].max() for c in cols) + t.bubble_radius
-        d.text((S(first[0] - t.bubble_radius), S(top - 72)), f.label.upper(), font=f_lbl, fill=INK)
+        top = min(c.centers[:, 1].min() for c in cols) - t.ry
+        bottom = max(c.centers[:, 1].max() for c in cols) + t.ry
+        left = min(c.centers[:, 0].min() for c in cols) - t.rx
+        right = max(c.centers[:, 0].max() for c in cols) + t.rx
+        d.text((S(first[0] - t.rx), S(top - 72)), f.label.upper(), font=f_lbl, fill=INK)
         for col in cols:
             cx = col.centers[0][0]
             d.rectangle([S(cx - 16), S(top - 44), S(cx + 16), S(top - 8)], outline=SOFT, width=max(1, int(S(1))))
@@ -114,10 +127,10 @@ def render_sheet(t: Template, scale: float = 2.0, title: str | None = None) -> I
         d.rounded_rectangle(frame, radius=S(8), outline=SOFT, width=max(1, int(S(1))))
 
     # Questions
-    f_q = _font(int(S(15)), True)
+    f_q = _font(int(S(12 if cell else 15)), True)
     for q in t.questions:
         x0, y0 = q.centers[0]
-        d.text((S(x0 - t.bubble_radius - 8), S(y0)), q.label, font=f_q, fill=INK, anchor="rm")
+        d.text((S(x0 - t.rx - 8), S(y0)), q.label, font=f_q, fill=INK, anchor="rm")
         for (cx, cy), opt in zip(q.centers, q.options):
             bubble(cx, cy, opt)
     # Light guide lines every 5 questions
@@ -130,7 +143,16 @@ def render_sheet(t: Template, scale: float = 2.0, title: str | None = None) -> I
                 y = (q.centers[0][1] + qs[i - 1].centers[0][1]) / 2
                 d.line([(S(b.bbox[0] - 40), S(y)), (S(b.bbox[2] + 6), S(y))], fill=(215, 215, 215), width=1)
 
-    d.text((W / 2, H - S(62)), "Do not fold · Keep the four corner markers visible when scanning", font=f_small, fill=SOFT, anchor="mm")
+    # Boxes around each answer group (university layout)
+    if cfg.get("group_boxes"):
+        for b in t.blocks:
+            if b.kind != "mcq":
+                continue
+            x0, y0, x1, y1 = b.bbox
+            d.rounded_rectangle([S(x0 - 44), S(y0 - 5), S(x1 + 8), S(y1 + 5)], radius=S(5), outline=SOFT, width=max(1, int(S(1))))
+
+    footer = cfg.get("footer", "Do not fold · Keep the four corner markers visible when scanning")
+    d.text((W / 2, H - S(62)), footer, font=f_small, fill=SOFT, anchor="mm")
     return img
 
 

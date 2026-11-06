@@ -16,6 +16,8 @@ export interface TemplateSpec {
     | { type: 'page' | 'none' };
   blocks: BlockSpec[];
   regions?: { name: string; label: string; bbox: [number, number, number, number] }[];
+  /** printing options (header lines, group boxes...) - used by the server renderer only */
+  print?: unknown;
 }
 
 export interface BlockSpec {
